@@ -1,9 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+// The only supported values are the app's own auth routes, `/sign-in` and
+// `/sign-up` (`app/sign-in/[[...sign-in]]`, `app/sign-up/[[...sign-up]]`).
+// Any other value would make a path public that renders no auth form, so the
+// env vars must match those routes; they fall back to them when unset or empty.
 const publicPaths = [
-  process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
-  process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
-].filter((path): path is string => Boolean(path));
+  process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/sign-in",
+  process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/sign-up",
+];
 
 const isPublicRoute = createRouteMatcher(publicPaths.map((path) => `${path}(.*)`));
 

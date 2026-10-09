@@ -34,7 +34,7 @@
 - Every project has a single owner (Clerk user ID).
 - Projects can include additional collaborators.
 - Only authenticated users can access protected routes.
-- `proxy.ts` (not `middleware.ts`) enforces this: every route is protected by default, and only the sign-in and sign-up paths from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` are public.
+- `proxy.ts` (not `middleware.ts`) enforces this: every route is protected by default, and only the sign-in and sign-up paths from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` are public (falling back to `/sign-in` and `/sign-up` when a var is unset or empty). Those two vars must stay at `/sign-in` and `/sign-up`, the only auth routes that exist; using a different path requires adding matching pages under `app/` first.
 - `/` redirects to `/editor` when signed in and to `/sign-in` otherwise. The editor chrome (`EditorShell`) is mounted only under `app/editor/`.
 - Only the owner or a collaborator can mutate project resources.
 - Liveblocks room tokens are issued only after verifying project membership.
