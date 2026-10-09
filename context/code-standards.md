@@ -43,7 +43,9 @@
 
 ## File Organization
 
-- `lib/` — shared infrastructure: Prisma client, auth helpers, utilities.
+- `lib/` — shared infrastructure: Prisma client, auth helpers, utilities. Mock data used before an API exists (`lib/mock-projects.ts`) lives here and is replaced when the API lands.
+- `hooks/` — client-side React hooks that own UI state (e.g. `use-project-dialogs.ts`, `use-project-list.ts`).
+- `types/` — shared TypeScript interfaces (e.g. `types/project.ts`).
 - `trigger/` — all durable background tasks and AI workflows.
 - `components/` — UI composition only; no business logic.
 - `app/api/` — route handlers for auth, triggering, and persistence.
