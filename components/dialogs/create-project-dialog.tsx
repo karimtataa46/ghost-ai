@@ -65,9 +65,9 @@ export function CreateProjectDialog({
           placeholder="Payments Platform"
           disabled={isLoading}
         />
-        <p className="flex items-center gap-2 text-sm text-copy-muted">
+        <p className="flex items-baseline gap-2 text-sm text-copy-muted">
           Slug
-          <code className="min-w-0 truncate rounded-xl bg-subtle px-2 py-1 font-mono text-xs text-copy-secondary">
+          <code className="min-w-0 rounded-xl bg-subtle px-2 py-1 font-mono text-xs break-all text-copy-secondary">
             {slug || "your-project-name"}
           </code>
         </p>

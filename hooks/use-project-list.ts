@@ -2,18 +2,18 @@
 
 import { useCallback, useState } from "react";
 
-import { slugify } from "@/lib/slugify";
+import { createShortId } from "@/lib/short-id";
 import type { Project } from "@/types/project";
 
 // In-memory only: the list resets on reload until the project API exists.
 export function useProjectList(initialProjects: Project[]) {
   const [projects, setProjects] = useState(initialProjects);
 
-  const createProject = useCallback((name: string) => {
+  const createProject = useCallback((name: string, slug: string) => {
     const project: Project = {
-      id: crypto.randomUUID(),
+      id: `mock-${Date.now().toString(36)}-${createShortId()}`,
       name,
-      slug: slugify(name),
+      slug,
       isOwner: true,
     };
     setProjects((current) => [project, ...current]);
