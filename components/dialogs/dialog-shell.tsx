@@ -30,7 +30,7 @@ export function DialogShell({
 }: DialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 rounded-3xl border border-surface-border bg-surface/95 p-6 text-copy-primary ring-0 backdrop-blur-xl sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-3xl border border-surface-border bg-surface/95 p-6 text-copy-primary ring-0 backdrop-blur-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base text-copy-primary">
             {title}
