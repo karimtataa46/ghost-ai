@@ -93,6 +93,10 @@ React Flow `<Background>` component. Canvas sits on the base background color.
 
 shadcn/ui on top of Tailwind. No custom design system. Components live in `components/ui/`. Use the `shadcn` CLI to add new components rather than writing them from scratch. shadcn semantic variables (`--background`, `--primary`, `--border`, `--input`, `--ring`, ...) are aliased to the project tokens in `globals.css`, so generated components render in the dark theme without edits. `<html>` carries the `dark` class so `dark:` variants apply.
 
+## Clerk
+
+Clerk components use the `dark` theme from `@clerk/ui/themes`, configured in `lib/clerk-appearance.ts`. Its `variables` are `var(--...)` references to the tokens above — never hex values. Keep Clerk's default user menu and profile flows; do not rebuild them. Auth pages (`components/auth/auth-layout.tsx`): exact 50/50 split at `lg` and up, form only below `lg`; no gradients or feature cards. Left panel (`bg-surface`, `border-r`): compact logo top-left, a large headline (`text-3xl`, `xl:text-4xl`) with an intro paragraph, three features as icon + title + description rows (small `bg-accent-dim` icon tile, no card), and a copyright footer. Right panel (`bg-base`): the Clerk card, centered on both axes and scaled up via `authFormAppearance` in `lib/clerk-appearance.ts` (`fontSize: 1rem`, `spacing: 1.25rem`, width cap `34rem` on `rootBox`, card `margin-inline: auto`) and applied only to `<SignIn>` / `<SignUp>` so the navbar `UserButton` menu keeps its default size. The GitHub / Google buttons get a raised look (`--bg-subtle` fill, 1px `--border-subtle` ring, soft shadow) so they stand out from the card; Clerk draws button outlines as a box-shadow ring, so this is done by replacing `box-shadow` with `!important`. The stacked "Continue with …" buttons and "Last used" badge are Clerk's own behavior for returning users; do not replicate them manually.
+
 ## Layout Patterns
 
 - Editor workspace: full-viewport layout — floating sidebar overlay on the left, center canvas, slide-over AI sidebar on the right.
