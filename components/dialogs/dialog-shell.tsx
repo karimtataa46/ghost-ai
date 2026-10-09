@@ -36,7 +36,7 @@ export function DialogShell({
             {title}
           </DialogTitle>
           {description && (
-            <DialogDescription className="text-copy-muted">
+            <DialogDescription className="wrap-anywhere text-copy-muted">
               {description}
             </DialogDescription>
           )}

@@ -120,6 +120,14 @@
     --sidebar-ring: var(--accent-primary);
 }
 
+@utility bg-grid {
+  --grid-line: color-mix(in srgb, var(--text-primary) 12%, transparent);
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

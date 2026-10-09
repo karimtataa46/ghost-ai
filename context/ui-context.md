@@ -89,6 +89,23 @@ Small white circular handles, hidden by default, revealed on node hover. Appear 
 
 React Flow `<Background>` component. Canvas sits on the base background color.
 
+Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see). The editor home (`components/editor/editor-home.tsx`) is centered on top of it. Drop `bg-grid` when React Flow's `<Background>` takes over, so the grid isn't drawn twice.
+
+### Editor Home
+
+Centered on the grid, no card: `h1` (`text-2xl`, `sm:text-3xl`, `font-semibold`, `text-copy-primary`), a `text-sm text-copy-muted` description, and a `size="lg"` `New Project` button with a `Plus` icon.
+
+## Project Dialogs and Sidebar Items
+
+- Create, Rename, and Delete use `DialogShell`. Create shows a live slug preview under the name input (`font-mono` `bg-subtle` chip that wraps with `break-all`; `your-project-name` while the name is empty; a name with no Latin letters or digits shows a `project-<6 chars>` fallback, which is the slug that gets saved). `DialogShell` descriptions use `wrap-anywhere` so a long unbroken project name wraps instead of overflowing the dialog. Rename shows `Current name: <name>` as its description and auto-focuses a prefilled input. Delete has no input and a `variant="destructive"` confirm button. Footer buttons are `Cancel` (`outline`) plus the primary action; both are disabled while loading and the primary label switches to `Creating...` / `Renaming...` / `Deleting...`.
+- Name inputs go through `components/dialogs/project-name-field.tsx` (label + shadcn `Input` with `text-copy-primary`).
+- Sidebar project rows: name (`text-sm text-copy-secondary`, truncated) with `Pencil` and `Trash2` `ghost` `icon-sm` buttons (`text-copy-muted`, delete hovers to `text-state-error`). The buttons render only for projects the user owns; shared projects show the name only.
+- Below `md` the open sidebar has a `bg-base/70` scrim behind it; tapping the scrim closes the sidebar. From `md` up there is no scrim and the sidebar closes only through its toggle/close buttons.
+
+## Tailwind Token Pitfall
+
+`base` is a color token (`--color-base`), so `text-base` compiles to `color: var(--bg-base)` and sets no font size. Never use `text-base` (or `sm:text-base`) in app code; use `text-sm`, `text-[1rem]`, etc. The protected shadcn `Input` uses `text-base`, so always give it an explicit text color class such as `text-copy-primary`.
+
 ## Component Library
 
 shadcn/ui on top of Tailwind. No custom design system. Components live in `components/ui/`. Use the `shadcn` CLI to add new components rather than writing them from scratch. shadcn semantic variables (`--background`, `--primary`, `--border`, `--input`, `--ring`, ...) are aliased to the project tokens in `globals.css`, so generated components render in the dark theme without edits. `<html>` carries the `dark` class so `dark:` variants apply.
