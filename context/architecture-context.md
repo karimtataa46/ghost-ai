@@ -32,12 +32,21 @@
 ## Auth and Collaboration Model
 
 - Every project has a single owner (Clerk user ID).
-- Projects can include additional collaborators.
+- A project's ID is its Liveblocks room ID: `<slug>-<short suffix>` (lowercase letters, numbers, hyphens, at most 128 characters), built by the client and stored as the primary key through `POST /api/projects { id, name }`. A taken ID is `409`. Without an `id` the schema's cuid default applies.
+- Projects can include additional collaborators, identified by email. A user's shared projects are the ones whose collaborators include their verified primary Clerk email (case-insensitive), minus projects they own.
 - Only authenticated users can access protected routes.
 - `proxy.ts` (not `middleware.ts`) enforces this: every route is protected by default, and only the sign-in and sign-up paths from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` are public (falling back to `/sign-in` and `/sign-up` when a var is unset or empty). Those two vars must stay at `/sign-in` and `/sign-up`, the only auth routes that exist; using a different path requires adding matching pages under `app/` first.
 - `/` redirects to `/editor` when signed in and to `/sign-in` otherwise. The editor chrome (`EditorShell`) is mounted only under `app/editor/`.
-- Only the owner or a collaborator can mutate project resources.
+- Unauthenticated requests to `/api/*` get a JSON `401` from `proxy.ts` (not Clerk's redirect or 404), and every handler re-checks the user with `auth()` because it derives `ownerId` from it.
+- Renaming or deleting a project itself is owner-only: a signed-in non-owner gets `403` (`lib/projects.ts`, `denyUnlessOwner`). Collaborators do not get these two actions.
+- Only the owner or a collaborator can mutate other project resources.
 - Liveblocks room tokens are issued only after verifying project membership.
+
+## Editor Data Flow
+
+- `app/editor/layout.tsx` (server) loads the owned and shared project lists (`lib/projects.ts`) and passes them to `EditorShell`, so the sidebar needs no client-side fetching on load.
+- Mutations go through `hooks/use-project-actions.ts` → `lib/project-api.ts` → `app/api/projects`, then `router.refresh()` re-runs the layout. A navigation alone does not re-render a layout, so creating a project calls `router.push` and `router.refresh()`.
+- `/editor` is the home; `/editor/[projectId]` is a project's workspace, available to its owner and collaborators (`findAccessibleProject`, otherwise 404). It is a placeholder until the canvas feature.
 
 ## Starter System Designs
 

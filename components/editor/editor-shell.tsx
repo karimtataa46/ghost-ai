@@ -5,17 +5,26 @@ import { useState, type ReactNode } from "react";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectsProvider } from "@/components/editor/projects-provider";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
-import { MOCK_PROJECTS } from "@/lib/mock-projects";
+import type { Project } from "@/types/project";
 
 interface EditorShellProps {
+  ownedProjects: Project[];
+  sharedProjects: Project[];
   children: ReactNode;
 }
 
-export function EditorShell({ children }: EditorShellProps) {
+export function EditorShell({
+  ownedProjects,
+  sharedProjects,
+  children,
+}: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <ProjectsProvider initialProjects={MOCK_PROJECTS}>
+    <ProjectsProvider
+      ownedProjects={ownedProjects}
+      sharedProjects={sharedProjects}
+    >
       <div className="flex h-dvh flex-col overflow-hidden bg-base">
         <EditorNavbar
           isSidebarOpen={isSidebarOpen}

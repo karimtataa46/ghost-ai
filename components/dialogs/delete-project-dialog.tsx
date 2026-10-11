@@ -1,5 +1,6 @@
 "use client";
 
+import { DialogError } from "@/components/dialogs/dialog-error";
 import { DialogShell } from "@/components/dialogs/dialog-shell";
 import { Button } from "@/components/ui/button";
 import type { Project } from "@/types/project";
@@ -9,6 +10,7 @@ interface DeleteProjectDialogProps {
   onOpenChange: (open: boolean) => void;
   project: Project | null;
   isLoading: boolean;
+  error: string | null;
   onConfirm: () => void;
 }
 
@@ -17,6 +19,7 @@ export function DeleteProjectDialog({
   onOpenChange,
   project,
   isLoading,
+  error,
   onConfirm,
 }: DeleteProjectDialogProps) {
   return (
@@ -49,6 +52,8 @@ export function DeleteProjectDialog({
           </Button>
         </>
       }
-    />
+    >
+      <DialogError message={error} />
+    </DialogShell>
   );
 }

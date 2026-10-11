@@ -91,15 +91,19 @@ React Flow `<Background>` component. Canvas sits on the base background color.
 
 Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see). The editor home (`components/editor/editor-home.tsx`) is centered on top of it. Drop `bg-grid` when React Flow's `<Background>` takes over, so the grid isn't drawn twice.
 
+### Workspace Placeholder
+
+`/editor/[projectId]` (`app/editor/[projectId]/page.tsx`) is a placeholder until the canvas exists: the same `bg-grid` container with the project name as an `h1` (`text-2xl`, `sm:text-3xl`, `font-semibold`, `text-copy-primary`, `wrap-anywhere`) and a `text-sm text-copy-muted` line, centered. It shows a 404 when the user is neither owner nor collaborator.
+
 ### Editor Home
 
 Centered on the grid, no card: `h1` (`text-2xl`, `sm:text-3xl`, `font-semibold`, `text-copy-primary`), a `text-sm text-copy-muted` description, and a `size="lg"` `New Project` button with a `Plus` icon.
 
 ## Project Dialogs and Sidebar Items
 
-- Create, Rename, and Delete use `DialogShell`. Create shows a live slug preview under the name input (`font-mono` `bg-subtle` chip that wraps with `break-all`; `your-project-name` while the name is empty; a name with no Latin letters or digits shows a `project-<6 chars>` fallback, which is the slug that gets saved). `DialogShell` descriptions use `wrap-anywhere` so a long unbroken project name wraps instead of overflowing the dialog. Rename shows `Current name: <name>` as its description and auto-focuses a prefilled input. Delete has no input and a `variant="destructive"` confirm button. Footer buttons are `Cancel` (`outline`) plus the primary action; both are disabled while loading and the primary label switches to `Creating...` / `Renaming...` / `Deleting...`.
+- Create, Rename, and Delete use `DialogShell`. Create shows a live `Room ID` preview under the name input (`font-mono` `bg-subtle` chip that wraps with `break-all`; `your-project-name` while the name is empty): the name's slug plus a 6-character suffix, e.g. `payments-platform-a1b2c3`, which is both the saved project ID and its Liveblocks room ID; a name with no Latin letters or digits previews `project-<suffix>`. `DialogShell` descriptions use `wrap-anywhere` so a long unbroken project name wraps instead of overflowing the dialog. Rename shows `Current name: <name>` as its description and auto-focuses a prefilled input. Delete has no input, shows the quoted project name in its description, and has a `variant="destructive"` confirm button. Footer buttons are `Cancel` (`outline`) plus the primary action; both are disabled while loading and the primary label switches to `Creating...` / `Renaming...` / `Deleting...`. A failed request keeps the dialog open and shows its message in `components/dialogs/dialog-error.tsx` (`role="alert"`, `text-sm text-state-error`, `wrap-anywhere`) under the form (Create, Rename) or the description (Delete).
 - Name inputs go through `components/dialogs/project-name-field.tsx` (label + shadcn `Input` with `text-copy-primary`).
-- Sidebar project rows: name (`text-sm text-copy-secondary`, truncated) with `Pencil` and `Trash2` `ghost` `icon-sm` buttons (`text-copy-muted`, delete hovers to `text-state-error`). The buttons render only for projects the user owns; shared projects show the name only.
+- Sidebar project rows: name (`text-sm text-copy-secondary`, truncated) with `Pencil` and `Trash2` `ghost` `icon-sm` buttons (`text-copy-muted`, delete hovers to `text-state-error`). The My Projects tab lists owned projects with the buttons; the Shared tab lists projects the user was added to as a collaborator, name only. Both lists come from the server (database), newest first.
 - Below `md` the open sidebar has a `bg-base/70` scrim behind it; tapping the scrim closes the sidebar. From `md` up there is no scrim and the sidebar closes only through its toggle/close buttons.
 
 ## Tailwind Token Pitfall
