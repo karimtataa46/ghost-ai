@@ -1,3 +1,6 @@
+// Leaves room for the suffix inside the 128-character project / room ID limit.
+const MAX_SLUG_LENGTH = 48;
+
 export function slugify(name: string): string {
   return name
     .normalize("NFKD")
@@ -7,10 +10,11 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// Names with no Latin letters or digits (e.g. Arabic, Chinese, "!!!") slugify to "".
-// Those fall back to `project-<suffix>`; an empty name stays empty.
-export function resolveSlug(name: string, fallbackSuffix: string): string {
-  const slug = slugify(name);
-  if (slug !== "" || name.trim() === "") return slug;
-  return `project-${fallbackSuffix}`;
+// The project ID, which is also its Liveblocks room ID: the name's slug plus a short unique suffix.
+// Names with no Latin letters or digits (e.g. Arabic, "!!!") slugify to "" and use `project` instead.
+// An empty name has no room ID yet.
+export function createRoomId(name: string, suffix: string): string {
+  if (name.trim() === "") return "";
+  const slug = slugify(name).slice(0, MAX_SLUG_LENGTH).replace(/-+$/, "") || "project";
+  return `${slug}-${suffix}`;
 }

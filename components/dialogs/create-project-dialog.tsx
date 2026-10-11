@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 
+import { DialogError } from "@/components/dialogs/dialog-error";
 import { DialogShell } from "@/components/dialogs/dialog-shell";
 import { ProjectNameField } from "@/components/dialogs/project-name-field";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,9 @@ interface CreateProjectDialogProps {
   onOpenChange: (open: boolean) => void;
   name: string;
   onNameChange: (name: string) => void;
-  slug: string;
+  roomId: string;
   isLoading: boolean;
+  error: string | null;
   onSubmit: () => void;
 }
 
@@ -23,8 +25,9 @@ export function CreateProjectDialog({
   onOpenChange,
   name,
   onNameChange,
-  slug,
+  roomId,
   isLoading,
+  error,
   onSubmit,
 }: CreateProjectDialogProps) {
   const canSubmit = name.trim() !== "" && !isLoading;
@@ -66,11 +69,12 @@ export function CreateProjectDialog({
           disabled={isLoading}
         />
         <p className="flex items-baseline gap-2 text-sm text-copy-muted">
-          Slug
+          Room ID
           <code className="min-w-0 rounded-xl bg-subtle px-2 py-1 font-mono text-xs break-all text-copy-secondary">
-            {slug || "your-project-name"}
+            {roomId || "your-project-name"}
           </code>
         </p>
+        <DialogError message={error} />
       </form>
     </DialogShell>
   );

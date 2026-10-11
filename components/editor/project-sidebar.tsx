@@ -22,6 +22,8 @@ interface EmptyStateProps {
 
 interface ProjectItemProps {
   project: Project;
+  // Only owners can rename or delete; the API enforces this too.
+  canManage: boolean;
   onRename: (project: Project) => void;
   onDelete: (project: Project) => void;
 }
@@ -36,13 +38,18 @@ function EmptyState({ icon, title, description }: EmptyStateProps) {
   );
 }
 
-function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+function ProjectItem({
+  project,
+  canManage,
+  onRename,
+  onDelete,
+}: ProjectItemProps) {
   return (
     <li className="flex items-center gap-1 rounded-xl py-1 pr-1 pl-3 hover:bg-subtle/60">
       <span className="min-w-0 flex-1 truncate text-sm text-copy-secondary">
         {project.name}
       </span>
-      {project.isOwner && (
+      {canManage && (
         <div className="flex shrink-0 items-center">
           <Button
             variant="ghost"
@@ -75,6 +82,7 @@ interface ProjectListProps extends Omit<ProjectItemProps, "project"> {
 
 function ProjectList({
   projects,
+  canManage,
   emptyState,
   onRename,
   onDelete,
@@ -87,6 +95,7 @@ function ProjectList({
         <ProjectItem
           key={project.id}
           project={project}
+          canManage={canManage}
           onRename={onRename}
           onDelete={onDelete}
         />
@@ -96,9 +105,8 @@ function ProjectList({
 }
 
 export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
-  const { projects, openCreate, openRename, openDelete } = useProjects();
-  const ownedProjects = projects.filter((project) => project.isOwner);
-  const sharedProjects = projects.filter((project) => !project.isOwner);
+  const { ownedProjects, sharedProjects, openCreate, openRename, openDelete } =
+    useProjects();
 
   return (
     <>
@@ -144,6 +152,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
           >
             <ProjectList
               projects={ownedProjects}
+              canManage
               onRename={openRename}
               onDelete={openDelete}
               emptyState={
@@ -161,6 +170,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
           >
             <ProjectList
               projects={sharedProjects}
+              canManage={false}
               onRename={openRename}
               onDelete={openDelete}
               emptyState={

@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 
+import { DialogError } from "@/components/dialogs/dialog-error";
 import { DialogShell } from "@/components/dialogs/dialog-shell";
 import { ProjectNameField } from "@/components/dialogs/project-name-field";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface RenameProjectDialogProps {
   name: string;
   onNameChange: (name: string) => void;
   isLoading: boolean;
+  error: string | null;
   onSubmit: () => void;
 }
 
@@ -26,6 +28,7 @@ export function RenameProjectDialog({
   name,
   onNameChange,
   isLoading,
+  error,
   onSubmit,
 }: RenameProjectDialogProps) {
   const canSubmit = name.trim() !== "" && !isLoading;
@@ -57,7 +60,7 @@ export function RenameProjectDialog({
         </>
       }
     >
-      <form id={FORM_ID} onSubmit={handleSubmit} className="flex flex-col">
+      <form id={FORM_ID} onSubmit={handleSubmit} className="flex flex-col gap-4">
         <ProjectNameField
           id="rename-project-name"
           label="New project name"
@@ -66,6 +69,7 @@ export function RenameProjectDialog({
           disabled={isLoading}
           autoFocus
         />
+        <DialogError message={error} />
       </form>
     </DialogShell>
   );

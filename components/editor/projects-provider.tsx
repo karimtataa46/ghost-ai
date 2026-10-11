@@ -10,12 +10,12 @@ import {
 import { CreateProjectDialog } from "@/components/dialogs/create-project-dialog";
 import { DeleteProjectDialog } from "@/components/dialogs/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/dialogs/rename-project-dialog";
-import { useProjectDialogs } from "@/hooks/use-project-dialogs";
-import { useProjectList } from "@/hooks/use-project-list";
+import { useProjectActions } from "@/hooks/use-project-actions";
 import type { Project } from "@/types/project";
 
 interface ProjectsContextValue {
-  projects: Project[];
+  ownedProjects: Project[];
+  sharedProjects: Project[];
   openCreate: () => void;
   openRename: (project: Project) => void;
   openDelete: (project: Project) => void;
@@ -24,37 +24,34 @@ interface ProjectsContextValue {
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
 
 interface ProjectsProviderProps {
-  initialProjects: Project[];
+  ownedProjects: Project[];
+  sharedProjects: Project[];
   children: ReactNode;
 }
 
 export function ProjectsProvider({
-  initialProjects,
+  ownedProjects,
+  sharedProjects,
   children,
 }: ProjectsProviderProps) {
-  const { projects, createProject, renameProject, deleteProject } =
-    useProjectList(initialProjects);
   const {
     openDialog,
     targetProject,
     name,
-    slug,
+    roomId,
     isLoading,
+    error,
     setName,
     openCreate,
     openRename,
     openDelete,
     close,
     submit,
-  } = useProjectDialogs({
-    onCreate: createProject,
-    onRename: renameProject,
-    onDelete: deleteProject,
-  });
+  } = useProjectActions();
 
   const value = useMemo(
-    () => ({ projects, openCreate, openRename, openDelete }),
-    [projects, openCreate, openRename, openDelete]
+    () => ({ ownedProjects, sharedProjects, openCreate, openRename, openDelete }),
+    [ownedProjects, sharedProjects, openCreate, openRename, openDelete]
   );
 
   function handleOpenChange(open: boolean) {
@@ -69,8 +66,9 @@ export function ProjectsProvider({
         onOpenChange={handleOpenChange}
         name={name}
         onNameChange={setName}
-        slug={slug}
+        roomId={roomId}
         isLoading={isLoading}
+        error={error}
         onSubmit={submit}
       />
       <RenameProjectDialog
@@ -80,6 +78,7 @@ export function ProjectsProvider({
         name={name}
         onNameChange={setName}
         isLoading={isLoading}
+        error={error}
         onSubmit={submit}
       />
       <DeleteProjectDialog
@@ -87,6 +86,7 @@ export function ProjectsProvider({
         onOpenChange={handleOpenChange}
         project={targetProject}
         isLoading={isLoading}
+        error={error}
         onConfirm={submit}
       />
     </ProjectsContext>
