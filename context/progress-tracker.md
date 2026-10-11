@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Foundation setup
+- Foundation setup (data layer)
 
 ## Current Goal
 
-- None active. 04 Project Dialogs & Editor Home is implemented and verified (see Completed); pick the next feature unit from `feature-spcs/`.
+- None active. 05 Prisma Schema And Data Layer is implemented and verified (see Completed); pick the next feature unit from `feature-spcs/`.
 
 ## Completed
 
@@ -43,14 +43,22 @@ Update this file whenever the current phase, active feature, or implementation s
   - Follow-up (project not appearing in the sidebar after Create): the first version only simulated the submit and the sidebar rendered a fixed `MOCK_PROJECTS`, so nothing could change. Added `hooks/use-project-list.ts` (in-memory `createProject` / `renameProject` / `deleteProject`), made `use-project-dialogs.ts` call them on submit, and replaced `ProjectDialogsProvider` / `useProjectDialogActions` with `ProjectsProvider` / `useProjects` (the sidebar no longer takes a `projects` prop). Verified on `next start`: creating `Billing Service` adds it to the top of My Projects with its rename/delete icons, renaming it to `Billing Platform` updates the row, and deleting `Realtime Chat Backend` removes it. `tsc`, `eslint`, and `npm run build` pass. Not re-run: creating from the editor home button (same provider and `openCreate`).
   - Review follow-up (after the PR review bot's minimal-risk report): (1) `submit` in `hooks/use-project-dialogs.ts` now wraps its work in `try/finally`, so a throwing handler no longer leaves the dialog stuck on `Creating...` with Cancel/X/Escape disabled. Reproduced before the fix by removing `crypto.randomUUID` (browsers only provide it on HTTPS/localhost, so a phone on `http://<LAN-IP>` would hit it); after the fix, with the handler forced to throw, the dialog stays open, controls re-enable, the typed name is kept, and a retry succeeds. The error still shows as an unhandled rejection in the console; there is no error UI yet. (2) Slug fallback (`resolveSlug` in `lib/slugify.ts`, chosen over blocking or deferring): names that slugify to an empty string get `project-<suffix>`, with the suffix (`lib/short-id.ts`) fixed when the Create dialog opens, so the preview equals the stored slug (`createProject(name, slug)` now takes the slug). Checked in the browser: `مشروع الدفع` and `!!!` get distinct fallback slugs that match their previews, `Billing Service` keeps `billing-service`. (3) `DialogShell` description uses `wrap-anywhere`: a 120-character name made the Delete description 1138px wide in a 448px dialog; it is now 398px with no horizontal scroll (Delete and Rename checked). (4) The Create dialog's slug chip wraps (`break-all`) instead of `truncate`, which had let a 120-character slug reach 880px and scroll the dialog; it is now 361px inside the dialog. `tsc`, `eslint`, and `npm run build` pass. Not exercised: a real non-HTTPS origin (the failure was simulated by stubbing `crypto.randomUUID` and, after the fix, `Math.random`).
 
+- 05 Prisma Schema And Data Layer (`feature-spcs/05-prisma.md`): data layer only, no routes and no UI change. The app still runs on the in-memory mock project list from 04; nothing imports `lib/prisma.ts` yet.
+  - Setup: Prisma 7.10.0 (`prisma`, `@prisma/client`, `@prisma/adapter-pg`, plus `pg`, `@types/pg`, `dotenv`, `tsx`). `prisma/schema.prisma` holds the generator (`provider = "prisma-client"`, `output = "../app/generated/prisma"`, gitignored) and the `postgresql` datasource. `prisma7.config.ts` sets `schema: "prisma/"` (a directory, so every file under `prisma/models/` is picked up), `migrations.path: "prisma/migrations"`, and the URL from `DATABASE_URL`; the CLI loads it ("Loaded Prisma config from prisma7.config.ts"), so no rename or `--config` flag is needed.
+  - Models (`prisma/models/project.prisma`): enum `ProjectStatus` (`DRAFT`, `ARCHIVED`). `Project`: `id` (cuid, required by Prisma), `ownerId` (Clerk user ID), `name`, optional `description`, `status` (default `DRAFT`), optional `canvasJsonPath`, `createdAt`, `updatedAt`, indexes on `ownerId` and `createdAt` (two single-column indexes; the spec's "owner ID and creation date" was read as separate indexes, while its "project/date" and "project/email" were read as composite). `ProjectCollaborator`: `id`, `projectId` (relation to `Project`, `onDelete: Cascade`), `email`, `createdAt`, unique `(projectId, email)`, indexes on `email` and `(projectId, createdAt)`. No fields beyond those.
+  - `lib/prisma.ts`: exports one `prisma` client. `prisma+postgres://` URLs use `new PrismaClient({ accelerateUrl })`; any other URL uses `PrismaPg` from `@prisma/adapter-pg`. The client is cached on `globalThis` in every environment except production, for hot reloads. It throws `DATABASE_URL is not set` when the variable is missing (my addition, so a missing variable does not fall back to the `pg` defaults). Accelerate needs no extra package: `accelerateUrl` is a native Prisma 7 client option.
+  - Migration `prisma/migrations/20261011111618_init` was applied to the database in `.env` (a hosted Prisma Postgres, checked empty first with a read-only `migrate diff`) and the client was generated into `app/generated/prisma`. The generated SQL matches the spec: both tables, the enum, the five indexes, the unique key, and the cascading foreign key.
+  - Verified: `prisma validate`, `tsc`, `eslint lib/prisma.ts`, and `npm run build` pass. A throwaway script (not in the repo) ran `lib/prisma.ts` against the real database inside a rolled-back transaction: create with defaults (`status = DRAFT`, `updatedAt` set), duplicate `(projectId, email)` rejected with `P2002`, deleting a project removed its collaborators, project count 0 before and after, and the client was cached on `globalThis`.
+  - Not exercised: the `prisma+postgres://` branch (type-checked only; the configured URL is a plain `postgres://` one), production mode of the cache, and a build on a fresh checkout (see Open Questions).
+
 ## In Progress
 
 - Nothing.
 
 ## Next Up
 
-- Next feature unit from `feature-spcs/` after 04.
-- Persist projects when the project API / Prisma exist: replace the in-memory `hooks/use-project-list.ts` and the 600ms stand-in wait in `hooks/use-project-dialogs.ts` with real calls, and load the list from the server instead of `MOCK_PROJECTS`.
+- Next feature unit from `feature-spcs/` after 05.
+- Persist projects once the project API exists (05 only adds the schema and client; it adds no routes and nothing imports `lib/prisma.ts` yet): replace the in-memory `hooks/use-project-list.ts` and the 600ms stand-in wait in `hooks/use-project-dialogs.ts` with real calls, and load the list from the server instead of `MOCK_PROJECTS`. Import the client as `prisma` from `@/lib/prisma`.
 - Project list / workspace routes (when added) live under the protected default; no matcher change needed.
 - Before replacing the local project handlers with API calls: derive ownership from the authenticated server identity and authorize every target project on the server (the sidebar's `isOwner` check only hides buttons); define duplicate-submit, cancel, and failure semantics first, including an error state in the dialogs (today a failed submit just re-enables the dialog).
 
@@ -62,6 +70,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - Delete description copy (`This action cannot be undone.`), the `Current name: ...` rename description, and the `your-project-name` slug placeholder are my wording; the spec only fixes the Create/Rename/Delete behavior. Adjust if you want different copy.
 - The shadcn CLI (4.21.4) generated `components/ui/*` with `import { cn } from "cn"` (the npm `cn` package) instead of `@/lib/utils`. Resolved with a `"cn": ["./lib/utils"]` path alias in `tsconfig.json` so the generated files stay unmodified. Decide whether to instead rewrite those imports to `@/lib/utils` and drop the alias.
 
+- The generated Prisma client (`app/generated/prisma`) is gitignored, but `lib/prisma.ts` imports from it, so `tsc` and `next build` fail on a fresh checkout or CI until `prisma generate` has run. The spec does not say where that runs. Decide whether to add `prisma generate` to a `postinstall` script or to the `build` script (it also needs `DATABASE_URL` to be loadable by `prisma7.config.ts`, or the config must tolerate a missing one).
+- The `DATABASE_URL` in `.env` has an `sslmode` that `pg` warns about on every connection (`sslmode=require` is currently treated as `verify-full`, and `pg` v9 will change that). Harmless today; set `sslmode=verify-full` explicitly, or `uselibpqcompat=true&sslmode=require`, before upgrading `pg`.
+- The docs disagree on where artifacts live: `architecture-context.md`'s Storage Model and `code-standards.md` say Vercel Blob (`canvas/{projectId}.json`, `specs/{projectId}/{specId}.md`), but `architecture-context.md`'s Spec Generation section says "saved to the filesystem", and `project-overview.md` says canvas snapshots are "persisted to the filesystem" and specs "persisted as files". Resolve it in those two files before the canvas or spec features start.
+- `CLAUDE.md` tells agents to read `context/architecture.md`, but the file is `context/architecture-context.md` (which `ai-workflow-rules.md` uses). Fix the path in `CLAUDE.md`.
 - The `clerk-custom-ui` skill says to always use Clerk's `shadcn` theme when `components.json` exists; 03 Auth's spec explicitly requires `dark` instead, so the spec was followed.
 - `clerk init` also installed 8 Clerk agent skills globally in `~/.agents/skills` (symlinked for Claude Code); the install reported failures only for the PromptScript target, which does not support global skills.
 
