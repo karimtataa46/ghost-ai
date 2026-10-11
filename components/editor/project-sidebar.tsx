@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { FolderOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 
 import { useProjects } from "@/components/editor/projects-provider";
@@ -12,6 +13,8 @@ import type { Project } from "@/types/project";
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  // The workspace's project (room), highlighted in the lists.
+  activeProjectId?: string;
 }
 
 interface EmptyStateProps {
@@ -24,6 +27,7 @@ interface ProjectItemProps {
   project: Project;
   // Only owners can rename or delete; the API enforces this too.
   canManage: boolean;
+  isActive: boolean;
   onRename: (project: Project) => void;
   onDelete: (project: Project) => void;
 }
@@ -41,14 +45,27 @@ function EmptyState({ icon, title, description }: EmptyStateProps) {
 function ProjectItem({
   project,
   canManage,
+  isActive,
   onRename,
   onDelete,
 }: ProjectItemProps) {
   return (
-    <li className="flex items-center gap-1 rounded-xl py-1 pr-1 pl-3 hover:bg-subtle/60">
-      <span className="min-w-0 flex-1 truncate text-sm text-copy-secondary">
+    <li
+      className={cn(
+        "flex items-center gap-1 rounded-xl py-1 pr-1 pl-3",
+        isActive ? "bg-accent-dim" : "hover:bg-subtle/60"
+      )}
+    >
+      <Link
+        href={`/editor/${project.id}`}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "min-w-0 flex-1 truncate rounded-md py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          isActive ? "font-medium text-brand" : "text-copy-secondary hover:text-copy-primary"
+        )}
+      >
         {project.name}
-      </span>
+      </Link>
       {canManage && (
         <div className="flex shrink-0 items-center">
           <Button
@@ -75,13 +92,15 @@ function ProjectItem({
   );
 }
 
-interface ProjectListProps extends Omit<ProjectItemProps, "project"> {
+interface ProjectListProps extends Omit<ProjectItemProps, "project" | "isActive"> {
   projects: Project[];
+  activeProjectId?: string;
   emptyState: ReactNode;
 }
 
 function ProjectList({
   projects,
+  activeProjectId,
   canManage,
   emptyState,
   onRename,
@@ -96,6 +115,7 @@ function ProjectList({
           key={project.id}
           project={project}
           canManage={canManage}
+          isActive={project.id === activeProjectId}
           onRename={onRename}
           onDelete={onDelete}
         />
@@ -104,9 +124,17 @@ function ProjectList({
   );
 }
 
-export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
+export function ProjectSidebar({
+  isOpen,
+  onClose,
+  activeProjectId,
+}: ProjectSidebarProps) {
   const { ownedProjects, sharedProjects, openCreate, openRename, openDelete } =
     useProjects();
+  // Open on the tab that holds the current room, so its highlight is visible.
+  const defaultTab = sharedProjects.some((project) => project.id === activeProjectId)
+    ? "shared"
+    : "my-projects";
 
   return (
     <>
@@ -141,7 +169,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
           </Button>
         </div>
 
-        <Tabs defaultValue="my-projects" className="min-h-0 flex-1 gap-0 p-3">
+        <Tabs defaultValue={defaultTab} className="min-h-0 flex-1 gap-0 p-3">
           <TabsList className="w-full shrink-0">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>
@@ -152,6 +180,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
           >
             <ProjectList
               projects={ownedProjects}
+              activeProjectId={activeProjectId}
               canManage
               onRename={openRename}
               onDelete={openDelete}
@@ -170,6 +199,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
           >
             <ProjectList
               projects={sharedProjects}
+              activeProjectId={activeProjectId}
               canManage={false}
               onRename={openRename}
               onDelete={openDelete}

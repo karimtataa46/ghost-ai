@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 
-import { EditorShell } from "@/components/editor/editor-shell";
-import { getCurrentUser } from "@/lib/current-user";
+import { ProjectsProvider } from "@/components/editor/projects-provider";
+import { getCurrentUser } from "@/lib/project-access";
 import { listOwnedProjects, listSharedProjects } from "@/lib/projects";
 
-// The sidebar lives in this layout, so its project lists are fetched here, on the server.
+// The sidebar's project lists are fetched here, on the server, and shared through
+// `ProjectsProvider`; each page renders its own shell (home or workspace) around them.
 // A navigation does not re-render a layout; `router.refresh()` after a mutation does.
 async function EditorWithProjects({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -20,9 +21,9 @@ async function EditorWithProjects({ children }: { children: ReactNode }) {
   ]);
 
   return (
-    <EditorShell ownedProjects={ownedProjects} sharedProjects={sharedProjects}>
+    <ProjectsProvider ownedProjects={ownedProjects} sharedProjects={sharedProjects}>
       {children}
-    </EditorShell>
+    </ProjectsProvider>
   );
 }
 

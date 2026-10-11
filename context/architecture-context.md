@@ -36,17 +36,20 @@
 - Projects can include additional collaborators, identified by email. A user's shared projects are the ones whose collaborators include their verified primary Clerk email (case-insensitive), minus projects they own.
 - Only authenticated users can access protected routes.
 - `proxy.ts` (not `middleware.ts`) enforces this: every route is protected by default, and only the sign-in and sign-up paths from `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` are public (falling back to `/sign-in` and `/sign-up` when a var is unset or empty). Those two vars must stay at `/sign-in` and `/sign-up`, the only auth routes that exist; using a different path requires adding matching pages under `app/` first.
-- `/` redirects to `/editor` when signed in and to `/sign-in` otherwise. The editor chrome (`EditorShell`) is mounted only under `app/editor/`.
+- `/` redirects to `/editor` when signed in and to `/sign-in` otherwise. The editor chrome (`EditorShell`, `WorkspaceShell`) is rendered only under `app/editor/`.
+- Identity and project access are checked through `lib/project-access.ts`: `getCurrentUser()` (Clerk user ID + verified primary email) and `findAccessibleProject(projectId, user)` (owner or collaborator, else `null`).
 - Unauthenticated requests to `/api/*` get a JSON `401` from `proxy.ts` (not Clerk's redirect or 404), and every handler re-checks the user with `auth()` because it derives `ownerId` from it.
 - Renaming or deleting a project itself is owner-only: a signed-in non-owner gets `403` (`lib/projects.ts`, `denyUnlessOwner`). Collaborators do not get these two actions.
+- Collaborators are managed through `app/api/projects/[projectId]/collaborators` (`GET` list, `POST { email }` invite) and `.../collaborators/[collaboratorId]` (`DELETE`). The owner and collaborators can list (`findAccessibleProject`, anyone else `404`); only the owner can invite or remove (`denyUnlessOwner`, `403` otherwise). Emails are stored trimmed and lowercased, one row per project and email (`409` for a repeat); the owner cannot invite their own email.
+- There is no local user table. Collaborator names and avatars come from the Clerk Backend API at list time (`lib/clerk-profiles.ts`, matched on verified email addresses only); an email with no Clerk user, or a Clerk failure, falls back to showing the email.
 - Only the owner or a collaborator can mutate other project resources.
 - Liveblocks room tokens are issued only after verifying project membership.
 
 ## Editor Data Flow
 
-- `app/editor/layout.tsx` (server) loads the owned and shared project lists (`lib/projects.ts`) and passes them to `EditorShell`, so the sidebar needs no client-side fetching on load.
+- `app/editor/layout.tsx` (server) loads the owned and shared project lists (`lib/projects.ts`) and passes them to `ProjectsProvider`, so the sidebar needs no client-side fetching on load. Each page renders its own shell inside it: `/editor` uses `EditorShell`, `/editor/[roomId]` uses `WorkspaceShell`.
 - Mutations go through `hooks/use-project-actions.ts` → `lib/project-api.ts` → `app/api/projects`, then `router.refresh()` re-runs the layout. A navigation alone does not re-render a layout, so creating a project calls `router.push` and `router.refresh()`.
-- `/editor` is the home; `/editor/[projectId]` is a project's workspace, available to its owner and collaborators (`findAccessibleProject`, otherwise 404). It is a placeholder until the canvas feature.
+- `/editor` is the home; `/editor/[roomId]` is a project's workspace (the room ID is the project ID). It is a server component: signed out → `redirect("/sign-in")`; a missing project or one the user is neither owner nor collaborator of → `AccessDenied` (same screen for both); otherwise `WorkspaceShell` with the project. The canvas area is a placeholder until the canvas feature.
 
 ## Starter System Designs
 
