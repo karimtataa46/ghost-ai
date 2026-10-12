@@ -3,3 +3,8 @@ export interface Project {
   id: string;
   name: string;
 }
+
+// A project opened in the workspace, with the viewer's role: only the owner manages access.
+export interface WorkspaceProject extends Project {
+  isOwner: boolean;
+}

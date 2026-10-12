@@ -43,7 +43,7 @@
 
 ## File Organization
 
-- `lib/` — shared infrastructure: Prisma client, auth helpers, project data helpers (`lib/projects.ts`), the client-side API wrappers (`lib/project-api.ts`), utilities. Mock data used before an API exists lives here and is deleted when the API lands.
+- `lib/` — shared infrastructure: Prisma client, auth and project access helpers (`lib/project-access.ts`), project data helpers (`lib/projects.ts`, `lib/collaborators.ts`), Clerk Backend API lookups (`lib/clerk-profiles.ts`), the client-side API wrappers (`lib/project-api.ts`, `lib/collaborator-api.ts`), utilities. Mock data used before an API exists lives here and is deleted when the API lands.
 - `hooks/` — client-side React hooks that own UI state (e.g. `use-project-actions.ts`).
 - `types/` — shared TypeScript interfaces (e.g. `types/project.ts`).
 - `trigger/` — all durable background tasks and AI workflows.

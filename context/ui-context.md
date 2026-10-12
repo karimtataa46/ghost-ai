@@ -91,9 +91,18 @@ React Flow `<Background>` component. Canvas sits on the base background color.
 
 Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see). The editor home (`components/editor/editor-home.tsx`) is centered on top of it. Drop `bg-grid` when React Flow's `<Background>` takes over, so the grid isn't drawn twice.
 
-### Workspace Placeholder
+### Workspace Shell
 
-`/editor/[projectId]` (`app/editor/[projectId]/page.tsx`) is a placeholder until the canvas exists: the same `bg-grid` container with the project name as an `h1` (`text-2xl`, `sm:text-3xl`, `font-semibold`, `text-copy-primary`, `wrap-anywhere`) and a `text-sm text-copy-muted` line, centered. It shows a 404 when the user is neither owner nor collaborator.
+`/editor/[roomId]` renders `components/editor/workspace-shell.tsx`, full viewport (`h-dvh`):
+
+- Navbar (`EditorNavbar` with `title` and `actions`): project sidebar toggle on the left; the project name centered (`h1`, `text-sm font-medium text-copy-primary`, truncated); on the right an `outline` Share button (`Share2`, label hidden below `sm`) that opens the Share dialog, a ghost `icon` AI sidebar toggle (`Sparkles` `h-5 w-5`, `text-ai-text` while open), then the Clerk `UserButton`.
+- Left: `ProjectSidebar` with the current room highlighted.
+- Center: the canvas area fills everything below the navbar. Until the canvas exists it is `components/editor/canvas-placeholder.tsx`: `bg-base` + `bg-grid` with a centered `text-sm` two-line message (`text-copy-secondary` title, `text-copy-muted` line).
+- Right: `components/editor/ai-sidebar.tsx`, a floating panel that mirrors `ProjectSidebar` (`top-3 right-3 bottom-3`, `w-80` capped at the viewport minus gutters, `rounded-2xl`, `bg-surface/90` + `backdrop-blur-xl`, slides in from the right, no scrim). Header: `Sparkles` (`text-ai-text`) + `AI Assistant` and a close button. Body: an empty state until AI chat exists.
+
+### Access Denied
+
+`components/editor/access-denied.tsx`, shown inside `EditorShell` for a room that does not exist or that the user cannot open: centered, a `Lock` icon (`h-8 w-8`, `text-copy-muted`) in a `rounded-2xl` `bg-surface` bordered tile, an `h1` (`text-lg font-semibold`), a `text-sm text-copy-muted` line, and an `outline` `lg` `Back to projects` link to `/editor` (`ArrowLeft`).
 
 ### Editor Home
 
@@ -103,7 +112,8 @@ Centered on the grid, no card: `h1` (`text-2xl`, `sm:text-3xl`, `font-semibold`,
 
 - Create, Rename, and Delete use `DialogShell`. Create shows a live `Room ID` preview under the name input (`font-mono` `bg-subtle` chip that wraps with `break-all`; `your-project-name` while the name is empty): the name's slug plus a 6-character suffix, e.g. `payments-platform-a1b2c3`, which is both the saved project ID and its Liveblocks room ID; a name with no Latin letters or digits previews `project-<suffix>`. `DialogShell` descriptions use `wrap-anywhere` so a long unbroken project name wraps instead of overflowing the dialog. Rename shows `Current name: <name>` as its description and auto-focuses a prefilled input. Delete has no input, shows the quoted project name in its description, and has a `variant="destructive"` confirm button. Footer buttons are `Cancel` (`outline`) plus the primary action; both are disabled while loading and the primary label switches to `Creating...` / `Renaming...` / `Deleting...`. A failed request keeps the dialog open and shows its message in `components/dialogs/dialog-error.tsx` (`role="alert"`, `text-sm text-state-error`, `wrap-anywhere`) under the form (Create, Rename) or the description (Delete).
 - Name inputs go through `components/dialogs/project-name-field.tsx` (label + shadcn `Input` with `text-copy-primary`).
-- Sidebar project rows: name (`text-sm text-copy-secondary`, truncated) with `Pencil` and `Trash2` `ghost` `icon-sm` buttons (`text-copy-muted`, delete hovers to `text-state-error`). The My Projects tab lists owned projects with the buttons; the Shared tab lists projects the user was added to as a collaborator, name only. Both lists come from the server (database), newest first.
+- Share dialog (`components/dialogs/share-dialog.tsx`, on `DialogShell`, opened from the workspace navbar): title `Share project`, description by role. Owners get an `Invite by email` form (email `Input` with `text-copy-primary` + `lg` `Invite` button, `Inviting...` while sending, error under the form). Below it, `Collaborators (n)`: rows with a 32px round avatar (`collaborator-avatar.tsx`: the Clerk image, or the first letter of the name/email on `bg-subtle`), the Clerk name over the email (`text-xs text-copy-muted`), or the email alone when Clerk has no user for it; owners also get a `UserMinus` `ghost` `icon-sm` remove button (`text-copy-muted`, hovers to `text-state-error`). The list scrolls past `max-h-64`; loading, empty, and load-error (with `Try again`) states are plain `text-sm` lines. Collaborators see the same list with no form and no remove buttons. The footer holds `copy-link-button.tsx` (`outline`, `Link2` → `Check` and `Copy link` → `Copied!` for 2 seconds).
+- Sidebar project rows: name as a link to `/editor/<id>` (`text-sm text-copy-secondary`, truncated, `hover:text-copy-primary`) with `Pencil` and `Trash2` `ghost` `icon-sm` buttons (`text-copy-muted`, delete hovers to `text-state-error`). The My Projects tab lists owned projects with the buttons; the Shared tab lists projects the user was added to as a collaborator, name only. Both lists come from the server (database), newest first. In a workspace, the current room's row has `bg-accent-dim`, its name `font-medium text-brand`, and `aria-current="page"`; the tabs open on the tab that holds it.
 - Below `md` the open sidebar has a `bg-base/70` scrim behind it; tapping the scrim closes the sidebar. From `md` up there is no scrim and the sidebar closes only through its toggle/close buttons.
 
 ## Tailwind Token Pitfall
@@ -120,7 +130,7 @@ Clerk components use the `dark` theme from `@clerk/ui/themes`, configured in `li
 
 ## Layout Patterns
 
-- Editor workspace: full-viewport layout — floating sidebar overlay on the left, center canvas, slide-over AI sidebar on the right.
+- Editor workspace: full-viewport layout — floating sidebar overlay on the left, center canvas, slide-over AI sidebar on the right (see Workspace Shell).
 - Sidebars: floating overlay with dark semi-transparent background and subtle border.
 - Modals and dialogs: centered overlay, `rounded-3xl`, dark background with backdrop blur.
 - Navbar: top bar with dark background and bottom border.

@@ -23,12 +23,13 @@ export function isValidProjectId(value: string) {
 }
 
 // What the sidebar and workspace need; the API's `projectSelect` returns more.
-const projectSummarySelect = {
+export const projectSummarySelect = {
   id: true,
   name: true,
 } satisfies Prisma.ProjectSelect;
 
-const collaboratorEmail = (email: string) => ({
+// Matches projects whose collaborators include `email`, case-insensitively.
+export const collaboratorEmail = (email: string) => ({
   collaborators: { some: { email: { equals: email, mode: "insensitive" as const } } },
 });
 
@@ -45,17 +46,6 @@ export function listSharedProjects(userId: string, email: string) {
   return prisma.project.findMany({
     where: { ownerId: { not: userId }, ...collaboratorEmail(email) },
     orderBy: { createdAt: "desc" },
-    select: projectSummarySelect,
-  });
-}
-
-// The project when the user owns it or is a collaborator on it, otherwise null.
-export function findAccessibleProject(projectId: string, userId: string, email: string | null) {
-  return prisma.project.findFirst({
-    where: {
-      id: projectId,
-      OR: [{ ownerId: userId }, ...(email ? [collaboratorEmail(email)] : [])],
-    },
     select: projectSummarySelect,
   });
 }

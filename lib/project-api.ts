@@ -11,7 +11,7 @@ export class ProjectApiError extends Error {
   }
 }
 
-async function request(url: string, init: RequestInit): Promise<unknown> {
+export async function request(url: string, init: RequestInit): Promise<unknown> {
   let response: Response;
 
   try {
@@ -34,7 +34,7 @@ async function request(url: string, init: RequestInit): Promise<unknown> {
   return body;
 }
 
-function jsonRequest(method: string, body: unknown): RequestInit {
+export function jsonRequest(method: string, body: unknown): RequestInit {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
 
