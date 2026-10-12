@@ -12,7 +12,7 @@
 - Strict mode is required throughout the project.
 - Avoid `any`; use explicit interfaces or narrowly scoped types.
 - Validate unknown external input at system boundaries before trusting it.
-- Use `interface` for object contracts.
+- Use `interface` for object contracts. Exception: React Flow node data (`CanvasNodeData` in `types/canvas.ts`) is a `type`, because React Flow requires it to be assignable to `Record<string, unknown>` and an interface is not.
 
 ## Next.js
 
@@ -43,8 +43,8 @@
 
 ## File Organization
 
-- `lib/` — shared infrastructure: Prisma client, auth and project access helpers (`lib/project-access.ts`), project data helpers (`lib/projects.ts`, `lib/collaborators.ts`), Clerk Backend API lookups (`lib/clerk-profiles.ts`), the client-side API wrappers (`lib/project-api.ts`, `lib/collaborator-api.ts`), utilities. Mock data used before an API exists lives here and is deleted when the API lands.
-- `hooks/` — client-side React hooks that own UI state (e.g. `use-project-actions.ts`).
+- `lib/` — shared infrastructure: Prisma client, auth and project access helpers (`lib/project-access.ts`), project data helpers (`lib/projects.ts`, `lib/collaborators.ts`), Clerk Backend API lookups (`lib/clerk-profiles.ts`), the Liveblocks node client (`lib/liveblocks.ts`) and cursor colors (`lib/cursor-color.ts`; the Liveblocks types live in `liveblocks.config.ts` at the project root), the client-side API wrappers (`lib/project-api.ts`, `lib/collaborator-api.ts`), canvas helpers that are plain functions (`lib/canvas-drag.ts` for the shape drag payload, `lib/canvas-nodes.ts` for building nodes), utilities. Mock data used before an API exists lives here and is deleted when the API lands.
+- `hooks/` — client-side React hooks that own UI state or interaction logic (e.g. `use-project-actions.ts`, `use-shape-drop.ts`).
 - `types/` — shared TypeScript interfaces (e.g. `types/project.ts`).
 - `trigger/` — all durable background tasks and AI workflows.
 - `components/` — UI composition only; no business logic.

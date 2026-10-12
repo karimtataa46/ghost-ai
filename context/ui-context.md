@@ -66,6 +66,10 @@ Radius increases with surface depth — smaller for inner elements, larger for o
 
 Default node color: `#1F1F1F` with `#EDEDED` text.
 
+### Cursor Colors
+
+Each collaborator's cursor color is one of the 7 vivid text colors above (blue, purple, orange, red, pink, green, teal; the neutral `#EDEDED` is excluded because it would not stand out). `getCursorColor(userId)` in `lib/cursor-color.ts` hashes the user ID onto that list, so a person keeps the same color in every session. The color is attached to the Liveblocks session as `info.color` when the token is issued.
+
 ### Edge Style
 
 Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke width is thin — edges are visually secondary to nodes.
@@ -81,15 +85,21 @@ Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke wid
 - `cylinder` — database / storage
 - `hexagon` — external system / boundary
 
+### Shape Panel
+
+`components/editor/shape-panel.tsx`: a floating pill-shaped toolbar at the bottom-center of the canvas (`absolute bottom-4 left-1/2 z-10 -translate-x-1/2`, `rounded-full`, `bg-surface/90` + `backdrop-blur-xl`, 1px `border-surface-border-subtle`, `shadow-lg`, `role="toolbar"`). It holds six `ghost` `icon-lg` round buttons, `h-5 w-5` Lucide icons in `text-copy-muted` (hover `text-copy-primary`, `cursor-grab`): rectangle (`RectangleHorizontal`), diamond (`Diamond`), circle (`Circle`), pill (`Pill`), cylinder (`Database`), hexagon (`Hexagon`). Each is `draggable` and carries its shape name plus default size; dropping it on the canvas wrapper creates a node at the drop point (`hooks/use-shape-drop.ts`). Default sizes (`SHAPE_DEFAULT_SIZES` in `types/canvas.ts`): rectangle 160x80, diamond 180x120, circle 96x96, pill 160x64, cylinder 120x100, hexagon 140x100. A new node has an empty label and the default color.
+
+Until the shape visuals land, `components/editor/canvas-node.tsx` renders every shape the same way: a `rounded-xl` box with a 1px `border-surface-border-subtle` border (`border-brand` when selected) filling the node's width and height, the fill from `data.color`, the label centered in `text-sm` with the palette's text color. No connection handles yet.
+
 ### Connection Handles
 
 Small white circular handles, hidden by default, revealed on node hover. Appear at all four sides of a node.
 
 ### Canvas Background
 
-React Flow `<Background>` component. Canvas sits on the base background color.
+The workspace canvas uses React Flow's `<Background variant={BackgroundVariant.Dots}>` on the base background color, with a `<MiniMap>` bottom-right (React Flow's own "React Flow" attribution link is left visible). The canvas runs with `colorMode="dark"`, and a `.react-flow` rule in `globals.css` points React Flow's `--xy-*` variables at the tokens: background `--bg-base`, dots `--border-subtle`, MiniMap `--bg-surface` with a `--bg-base` 70% mask and `--border-subtle` nodes. Change canvas colors there, not with hex values. React Flow's stylesheet (`@xyflow/react/dist/style.css`) is imported in `components/editor/canvas.tsx`.
 
-Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see). The editor home (`components/editor/editor-home.tsx`) is centered on top of it. Drop `bg-grid` when React Flow's `<Background>` takes over, so the grid isn't drawn twice.
+The editor home keeps its own grid: `app/editor/page.tsx` renders a `bg-grid` container, a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see), with `components/editor/editor-home.tsx` centered on top of it. The workspace no longer uses `bg-grid`, so the grid is not drawn twice.
 
 ### Workspace Shell
 
@@ -97,7 +107,7 @@ Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 
 
 - Navbar (`EditorNavbar` with `title` and `actions`): project sidebar toggle on the left; the project name centered (`h1`, `text-sm font-medium text-copy-primary`, truncated); on the right an `outline` Share button (`Share2`, label hidden below `sm`) that opens the Share dialog, a ghost `icon` AI sidebar toggle (`Sparkles` `h-5 w-5`, `text-ai-text` while open), then the Clerk `UserButton`.
 - Left: `ProjectSidebar` with the current room highlighted.
-- Center: the canvas area fills everything below the navbar. Until the canvas exists it is `components/editor/canvas-placeholder.tsx`: `bg-base` + `bg-grid` with a centered `text-sm` two-line message (`text-copy-secondary` title, `text-copy-muted` line).
+- Center: the canvas area fills everything below the navbar: `CanvasRoom` (`components/editor/canvas-room.tsx`). While the room connects it shows a centered `text-sm` two-line `Loading canvas...` message (`role="status"`, `text-copy-secondary` title, `text-copy-muted` line, on `bg-base`); on a failed connection the same layout shows `Could not connect to the canvas` (`role="alert"`). Once connected it is the React Flow canvas (see Canvas Background).
 - Right: `components/editor/ai-sidebar.tsx`, a floating panel that mirrors `ProjectSidebar` (`top-3 right-3 bottom-3`, `w-80` capped at the viewport minus gutters, `rounded-2xl`, `bg-surface/90` + `backdrop-blur-xl`, slides in from the right, no scrim). Header: `Sparkles` (`text-ai-text`) + `AI Assistant` and a close button. Body: an empty state until AI chat exists.
 
 ### Access Denied
