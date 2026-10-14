@@ -1,12 +1,12 @@
-import type { XYPosition } from "@xyflow/react";
+import type { NodeSelectionChange, XYPosition } from "@xyflow/react";
 
-import { DEFAULT_NODE_COLOR, type CanvasNode, type ShapeDragPayload } from "@/types/canvas";
+import { SHAPE_DEFAULT_COLORS, type CanvasNode, type ShapeDragPayload } from "@/types/canvas";
 
 // Distinguishes nodes created in the same millisecond. Per tab, so it only has to make IDs
 // unique for this client; the timestamp separates clients.
 let nodeCounter = 0;
 
-// A new, empty node of the dragged shape, at its default size and color.
+// A new, empty node of the dragged shape, at its default size and its shape's default color.
 export function createCanvasNode(payload: ShapeDragPayload, position: XYPosition): CanvasNode {
   nodeCounter += 1;
 
@@ -16,6 +16,15 @@ export function createCanvasNode(payload: ShapeDragPayload, position: XYPosition
     position,
     width: payload.width,
     height: payload.height,
-    data: { label: "", color: DEFAULT_NODE_COLOR.fill, shape: payload.shape },
+    data: { label: "", color: SHAPE_DEFAULT_COLORS[payload.shape], shape: payload.shape },
   };
+}
+
+// The changes that select every node that is not selected yet, for the canvas's `onNodesChange`.
+// Liveblocks keeps selection local (it is not written to Storage or undo history, and other
+// people do not see it), so this only changes what this client has selected.
+export function selectAllNodes(nodes: CanvasNode[]): NodeSelectionChange[] {
+  return nodes
+    .filter((node) => !node.selected)
+    .map((node) => ({ id: node.id, type: "select", selected: true }));
 }

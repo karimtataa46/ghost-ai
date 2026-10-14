@@ -1,6 +1,6 @@
 import {
-  NODE_SHAPES,
   SHAPE_DEFAULT_SIZES,
+  isNodeShape,
   type NodeShape,
   type ShapeDragPayload,
 } from "@/types/canvas";
@@ -8,6 +8,16 @@ import {
 // Custom MIME type, so the canvas only reacts to drags that come from the shape panel (not
 // files, text, or links dragged in from elsewhere).
 export const SHAPE_DRAG_TYPE = "application/x-ghost-shape";
+
+// A 1x1 transparent GIF, created when the module loads so it has finished loading long before
+// a drag starts (`setDragImage` ignores an image that is not loaded yet). `Image` does not
+// exist during server rendering.
+const BLANK_DRAG_IMAGE =
+  typeof Image === "undefined"
+    ? null
+    : Object.assign(new Image(), {
+        src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      });
 
 export function createShapeDragPayload(shape: NodeShape): ShapeDragPayload {
   return { shape, ...SHAPE_DEFAULT_SIZES[shape] };
@@ -18,13 +28,16 @@ export function writeShapeDragPayload(dataTransfer: DataTransfer, payload: Shape
   dataTransfer.effectAllowed = "copy";
 }
 
+// Replaces the browser's own drag image with nothing, so the shape drag preview is the only
+// ghost on screen (it follows the cursor and scales with the canvas zoom, which a native
+// drag image cannot do).
+export function hideNativeDragImage(dataTransfer: DataTransfer) {
+  if (BLANK_DRAG_IMAGE) dataTransfer.setDragImage(BLANK_DRAG_IMAGE, 0, 0);
+}
+
 // The data itself is hidden until drop, but the types are readable during the drag.
 export function isShapeDrag(dataTransfer: DataTransfer): boolean {
   return dataTransfer.types.includes(SHAPE_DRAG_TYPE);
-}
-
-function isNodeShape(value: unknown): value is NodeShape {
-  return NODE_SHAPES.some((shape) => shape === value);
 }
 
 function isSize(value: unknown): value is number {

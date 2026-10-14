@@ -135,6 +135,11 @@
   --xy-minimap-background-color: var(--bg-surface);
   --xy-minimap-mask-background-color: color-mix(in srgb, var(--bg-base) 70%, transparent);
   --xy-minimap-node-background-color: var(--border-subtle);
+  /* Connection handles: white dots with a base-colored ring, so they read on any node fill. */
+  --xy-handle-background-color: var(--text-primary);
+  --xy-handle-border-color: var(--bg-base);
+  /* Resize handles and lines on a selected node: brand cyan, like the selected outline. */
+  --xy-resize-background-color: var(--accent-primary);
 }
 
 @layer base {

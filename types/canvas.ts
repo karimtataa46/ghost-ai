@@ -12,20 +12,48 @@ export const NODE_SHAPES = [
 
 export type NodeShape = (typeof NODE_SHAPES)[number];
 
+export function isNodeShape(value: unknown): value is NodeShape {
+  return NODE_SHAPES.some((shape) => shape === value);
+}
+
 // Node fill and its text color, tuned for the dark canvas (`context/ui-context.md`, Node
-// Color Palette). A node's `data.color` holds one of the `fill` values.
+// Color Palette). A shape's color is one of the `fill` values (`ShapeColors`); the text color is
+// looked up from it. `name` labels the pair in the shape color toolbar
+// (`components/editor/shape-color-toolbar.tsx`).
 export const NODE_COLORS = [
-  { fill: "#1F1F1F", text: "#EDEDED" }, // neutral dark (default)
-  { fill: "#10233D", text: "#52A8FF" }, // blue
-  { fill: "#2E1938", text: "#BF7AF0" }, // purple
-  { fill: "#331B00", text: "#FF990A" }, // orange
-  { fill: "#3C1618", text: "#FF6166" }, // red
-  { fill: "#3A1726", text: "#F75F8F" }, // pink
-  { fill: "#0F2E18", text: "#62C073" }, // green
-  { fill: "#062822", text: "#0AC7B4" }, // teal
+  { name: "Neutral", fill: "#1F1F1F", text: "#EDEDED" }, // neutral dark (default)
+  { name: "Blue", fill: "#10233D", text: "#52A8FF" },
+  { name: "Purple", fill: "#2E1938", text: "#BF7AF0" },
+  { name: "Orange", fill: "#331B00", text: "#FF990A" },
+  { name: "Red", fill: "#3C1618", text: "#FF6166" },
+  { name: "Pink", fill: "#3A1726", text: "#F75F8F" },
+  { name: "Green", fill: "#0F2E18", text: "#62C073" },
+  { name: "Teal", fill: "#062822", text: "#0AC7B4" },
 ] as const;
 
 export const DEFAULT_NODE_COLOR = NODE_COLORS[0];
+
+export type NodeFill = (typeof NODE_COLORS)[number]["fill"];
+
+export function isNodeFill(value: unknown): value is NodeFill {
+  return NODE_COLORS.some((color) => color.fill === value);
+}
+
+// The color every node of a shape has until someone picks another one in the shape panel, so a
+// diagram reads at a glance. Each is a palette fill (the type keeps it that way) picked to match
+// what the shape stands for in `NODE_SHAPES`. Red is left out: it reads as an error.
+// `DEFAULT_NODE_COLOR` stays the fallback for a text color that is not in the palette.
+export const SHAPE_DEFAULT_COLORS: Record<NodeShape, NodeFill> = {
+  rectangle: "#10233D", // blue: general-purpose
+  diamond: "#331B00", // orange: decision / gateway
+  circle: "#0F2E18", // green: event / endpoint
+  pill: "#2E1938", // purple: service / process
+  cylinder: "#062822", // teal: database / storage
+  hexagon: "#3A1726", // pink: external system / boundary
+};
+
+// Default edge color (`context/ui-context.md`, Edge Style), used for the line and its arrow.
+export const EDGE_COLOR = "#f8fafc";
 
 export interface ShapeSize {
   width: number;
@@ -43,6 +71,27 @@ export const SHAPE_DEFAULT_SIZES: Record<NodeShape, ShapeSize> = {
   hexagon: { width: 140, height: 100 },
 };
 
+// The smallest a node can be resized to, in canvas units. Resizing keeps a node's aspect ratio,
+// so this is a floor on both sides rather than a fixed minimum shape: a 2:1 node stops at 96 x 48.
+// Below the smallest default size (the pill's 64px height) so every shape can shrink a little,
+// but large enough that the SVG shapes keep their proportions and a label stays readable.
+export const NODE_MIN_SIZE: ShapeSize = { width: 64, height: 48 };
+
+// Shown, dimmed, in a node whose label is empty, and in the label editor while it is empty, so
+// people can see that a node takes text and where it goes.
+export const NODE_LABEL_PLACEHOLDER = "Label";
+
+// The color picked for each shape in the shape panel, kept in the room's Storage
+// (`liveblocks.config.ts`, `shapeColors`) so every collaborator sees it. A shape with no entry
+// uses `SHAPE_DEFAULT_COLORS`. Values are palette fills, but Storage outlives this code, so they
+// are checked with `isNodeFill` on read. A `type`, not an `interface`: Liveblocks needs it to be
+// assignable to `LsonObject`.
+export type ShapeColors = Partial<Record<NodeShape, string>>;
+
+// What dragging on empty canvas does: `pan` moves the view, `select` draws a selection box.
+// Chosen in the control bar; UI state only, never synced (`lib/canvas-tools.ts`).
+export type CanvasTool = "select" | "pan";
+
 // What the shape panel puts on a drag, and the canvas reads back on drop.
 export interface ShapeDragPayload extends ShapeSize {
   shape: NodeShape;
@@ -52,7 +101,8 @@ export interface ShapeDragPayload extends ShapeSize {
 // `Record<string, unknown>`, which an interface (no implicit index signature) is not.
 export type CanvasNodeData = {
   label: string;
-  // Fill color, one of `NODE_COLORS[number]["fill"]`; the text color is looked up from it.
+  // The fill the node was created with. It is not what the node draws: every node of a shape
+  // shares the shape's color (`ShapeColors`), so changing it in the shape panel recolors them all.
   color: string;
   shape: NodeShape;
 };

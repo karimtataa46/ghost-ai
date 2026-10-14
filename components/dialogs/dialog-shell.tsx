@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface DialogShellProps {
   open: boolean;
@@ -18,6 +19,9 @@ interface DialogShellProps {
   description?: string;
   children?: ReactNode;
   footer?: ReactNode;
+  // Merged over the dialog's default classes, e.g. `sm:max-w-3xl` for a dialog that needs more
+  // room than the default width.
+  className?: string;
 }
 
 export function DialogShell({
@@ -27,10 +31,16 @@ export function DialogShell({
   description,
   children,
   footer,
+  className,
 }: DialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-3xl border border-surface-border bg-surface/95 p-6 text-copy-primary ring-0 backdrop-blur-xl sm:max-w-md">
+      <DialogContent
+        className={cn(
+          "max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto rounded-3xl border border-surface-border bg-surface/95 p-6 text-copy-primary ring-0 backdrop-blur-xl sm:max-w-md",
+          className,
+        )}
+      >
         <DialogHeader>
           <DialogTitle className="text-base text-copy-primary">
             {title}

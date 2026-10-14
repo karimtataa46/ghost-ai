@@ -6,6 +6,7 @@ import {
   RoomProvider,
   useErrorListener,
 } from "@liveblocks/react/suspense";
+import { LiveObject } from "@liveblocks/client";
 import { ErrorBoundary, useErrorBoundary } from "react-error-boundary";
 
 import { Canvas } from "@/components/editor/canvas";
@@ -54,7 +55,14 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       {/* Keyed by room so moving between projects starts from a fresh canvas and boundary. */}
-      <RoomProvider key={roomId} id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
+      <RoomProvider
+        key={roomId}
+        id={roomId}
+        initialPresence={{ cursor: null, isThinking: false }}
+        // The picked shape colors start empty. The canvas's own `flow` key is not listed: the
+        // flow hook creates it.
+        initialStorage={{ shapeColors: new LiveObject({}) }}
+      >
         <ErrorBoundary
           fallback={
             <CanvasStatus
