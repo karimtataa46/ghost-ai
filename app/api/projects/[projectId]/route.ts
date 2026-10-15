@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 
 import { errorResponse, unauthorizedResponse } from "@/lib/api-response";
+import { getLiveblocks } from "@/lib/liveblocks";
 import { prisma } from "@/lib/prisma";
 import { denyUnlessOwner, isRecordNotFound, projectSelect } from "@/lib/projects";
 import { readJsonObject } from "@/lib/request-body";
@@ -66,6 +67,11 @@ export async function DELETE(_request: Request, { params }: ProjectRouteContext)
   if (denied) {
     return denied;
   }
+
+  // The project ID is the Liveblocks room ID and the client picks it, so a room left behind could
+  // be claimed by whoever re-creates the ID. Delete it first: Liveblocks does not error on a
+  // missing room, so a failure here (or in the delete below) can simply be retried.
+  await getLiveblocks().deleteRoom(projectId);
 
   try {
     await prisma.project.delete({
