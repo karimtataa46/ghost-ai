@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 
+import { ProjectStatus } from "@/app/generated/prisma/client";
 import { errorResponse, unauthorizedResponse } from "@/lib/api-response";
+import { deleteCanvasBlob } from "@/lib/canvas-storage";
 import { getLiveblocks } from "@/lib/liveblocks";
 import { prisma } from "@/lib/prisma";
 import { denyUnlessOwner, isRecordNotFound, projectSelect } from "@/lib/projects";
@@ -68,16 +70,31 @@ export async function DELETE(_request: Request, { params }: ProjectRouteContext)
     return denied;
   }
 
-  // The project ID is the Liveblocks room ID and the client picks it, so a room left behind could
-  // be claimed by whoever re-creates the ID. Delete it first: Liveblocks does not error on a
-  // missing room, so a failure here (or in the delete below) can simply be retried.
-  await getLiveblocks().deleteRoom(projectId);
-
   try {
-    await prisma.project.delete({
+    // Mark the project first. `findAccessibleProject` refuses a deleting project, so a token
+    // request that arrives while the room is going away cannot re-create it.
+    await prisma.project.update({
       where: { id: projectId, ownerId: userId },
+      data: { status: ProjectStatus.DELETING },
       select: { id: true },
     });
+
+    // The project ID is the Liveblocks room ID and the client picks it, so a room left behind could
+    // be claimed by whoever re-creates the ID. Delete it before the row: Liveblocks does not error
+    // on a missing room, so a failure here (or in the delete below) leaves the project marked and
+    // closed, and the owner can simply retry.
+    await getLiveblocks().deleteRoom(projectId);
+
+    const { canvasJsonPath } = await prisma.project.delete({
+      where: { id: projectId, ownerId: userId },
+      select: { canvasJsonPath: true },
+    });
+
+    // Nothing points at the saved canvas any more. A failure is logged, not thrown: the project
+    // is already gone, so the request cannot be retried.
+    if (canvasJsonPath) {
+      await deleteCanvasBlob(canvasJsonPath);
+    }
 
     return Response.json({ id: projectId });
   } catch (error) {

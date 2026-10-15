@@ -1,6 +1,7 @@
 enum ProjectStatus {
   DRAFT
   ARCHIVED
+  DELETING // Set before the Liveblocks room is deleted; nobody can open the project from then on
 }
 
 model Project {
@@ -9,7 +10,7 @@ model Project {
   name           String
   description    String?
   status         ProjectStatus         @default(DRAFT)
-  canvasJsonPath String? // Blob URL of the canvas snapshot (future)
+  canvasJsonPath String? // Vercel Blob URL of the saved canvas JSON; null until the first save
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   collaborators  ProjectCollaborator[]

@@ -81,6 +81,10 @@ export const NODE_MIN_SIZE: ShapeSize = { width: 64, height: 48 };
 // people can see that a node takes text and where it goes.
 export const NODE_LABEL_PLACEHOLDER = "Label";
 
+// Shown, dimmed, in an edge's text editor while it is empty. An edge with no text draws nothing,
+// so there is no placeholder outside the editor.
+export const EDGE_LABEL_PLACEHOLDER = "Label";
+
 // The color picked for each shape in the shape panel, kept in the room's Storage
 // (`liveblocks.config.ts`, `shapeColors`) so every collaborator sees it. A shape with no entry
 // uses `SHAPE_DEFAULT_COLORS`. Values are palette fills, but Storage outlives this code, so they
@@ -108,6 +112,22 @@ export type CanvasNodeData = {
 };
 
 // The canvas's custom node and edge. `canvasNode` is registered with React Flow in
-// `components/editor/canvas.tsx`; the `canvasEdge` renderer comes later.
+// `components/editor/canvas.tsx`. Edges are drawn by `CanvasEdgeRenderer`, registered there under
+// React Flow's `smoothstep` type (`CANVAS_EDGE_TYPE`), not under `canvasEdge`: edges are stored
+// with `smoothstep` (or no type), so `CanvasEdge`'s `canvasEdge` is the type of a custom edge that
+// does not exist yet.
 export type CanvasNode = Node<CanvasNodeData, "canvasNode">;
 export type CanvasEdge = Edge<Record<string, unknown>, "canvasEdge">;
+
+// What is saved for a canvas: the JSON stored in Vercel Blob (`lib/canvas-storage.ts`) and sent
+// between the editor and `/api/projects/[projectId]/canvas`. Only the fields that define the
+// diagram; local-only React Flow state (selection, measured size) is never part of it
+// (`lib/canvas-snapshot.ts`).
+export interface CanvasSnapshot {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+}
+
+// Where autosave is: `idle` until the first save of this session, then `saving`, `saved`, or
+// `error` (shown in the navbar's Save button).
+export type CanvasSaveStatus = "idle" | "saving" | "saved" | "error";
