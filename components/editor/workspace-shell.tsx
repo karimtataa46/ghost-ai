@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Share2, Sparkles } from "lucide-react";
+import { useCallback, useState, type ReactNode } from "react";
+import { LayoutTemplate, Share2, Sparkles } from "lucide-react";
 
 import { ShareDialog } from "@/components/dialogs/share-dialog";
 import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import {
+  TemplateImportProvider,
+  type TemplateImporter,
+} from "@/components/editor/template-import-provider";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceProject } from "@/types/project";
 
@@ -17,13 +22,22 @@ interface WorkspaceShellProps {
   children: ReactNode;
 }
 
-// Editor chrome for an open project: project name in the navbar, Share and AI sidebar
+// Editor chrome for an open project: project name in the navbar, Templates, Share and AI sidebar
 // toggle actions, the project sidebar on the left and the AI sidebar on the right, both
-// floating over the canvas, and the share dialog. Must render under `ProjectsProvider`.
+// floating over the canvas, and the share and starter templates dialogs. Must render under
+// `ProjectsProvider`.
 export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  // The mounted canvas's template importer, or `null` while there is no canvas (loading, or a
+  // failed connection). The function is wrapped because `setState` would call it as an updater.
+  const [importTemplate, setImportTemplate] = useState<TemplateImporter | null>(null);
+  const registerImporter = useCallback(
+    (importer: TemplateImporter | null) => setImportTemplate(() => importer),
+    [],
+  );
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-base">
@@ -33,6 +47,16 @@ export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
         title={project.name}
         actions={
           <>
+            {/* Disabled until the canvas has connected, since importing needs its room. */}
+            <Button
+              variant="outline"
+              aria-label="Starter templates"
+              disabled={!importTemplate}
+              onClick={() => setIsTemplatesOpen(true)}
+            >
+              <LayoutTemplate className="h-4 w-4" />
+              <span className="hidden sm:inline">Templates</span>
+            </Button>
             <Button variant="outline" aria-label="Share" onClick={() => setIsShareOpen(true)}>
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
@@ -56,13 +80,20 @@ export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
           onClose={() => setIsSidebarOpen(false)}
           activeProjectId={project.id}
         />
-        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col">
+          <TemplateImportProvider onRegister={registerImporter}>{children}</TemplateImportProvider>
+        </main>
         <AiSidebar
           isOpen={isAiSidebarOpen}
           onClose={() => setIsAiSidebarOpen(false)}
         />
       </div>
       <ShareDialog open={isShareOpen} onOpenChange={setIsShareOpen} project={project} />
+      <StarterTemplatesModal
+        open={isTemplatesOpen}
+        onOpenChange={setIsTemplatesOpen}
+        onImport={(template) => importTemplate?.(template)}
+      />
     </div>
   );
 }

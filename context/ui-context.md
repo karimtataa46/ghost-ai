@@ -51,24 +51,30 @@ Radius increases with surface depth — smaller for inner elements, larger for o
 
 ### Node Color Palette
 
-8 defined color pairs. Each pair specifies a dark node fill and a vivid contrasting text color tuned for readability on the dark canvas. Defined in `types/canvas.ts` as `NODE_COLORS`.
+8 defined color pairs. Each pair specifies a dark node fill and a vivid contrasting text color tuned for readability on the dark canvas. Defined in `types/canvas.ts` as `NODE_COLORS`, each with a `name` (used as the swatch label in the color toolbar). The palette is not in `globals.css`: these are canvas data applied as inline styles, like the node fills themselves.
 
-| Node fill | Text color | Character              |
-| --------- | ---------- | ---------------------- |
-| `#1F1F1F` | `#EDEDED`  | Neutral dark (default) |
-| `#10233D` | `#52A8FF`  | Blue                   |
-| `#2E1938` | `#BF7AF0`  | Purple                 |
-| `#331B00` | `#FF990A`  | Orange                 |
-| `#3C1618` | `#FF6166`  | Red                    |
-| `#3A1726` | `#F75F8F`  | Pink                   |
-| `#0F2E18` | `#62C073`  | Green                  |
-| `#062822` | `#0AC7B4`  | Teal                   |
+| Node fill | Text color | Name / character      |
+| --------- | ---------- | --------------------- |
+| `#1F1F1F` | `#EDEDED`  | Neutral (dark, default) |
+| `#10233D` | `#52A8FF`  | Blue                  |
+| `#2E1938` | `#BF7AF0`  | Purple                |
+| `#331B00` | `#FF990A`  | Orange                |
+| `#3C1618` | `#FF6166`  | Red                   |
+| `#3A1726` | `#F75F8F`  | Pink                  |
+| `#0F2E18` | `#62C073`  | Green                 |
+| `#062822` | `#0AC7B4`  | Teal                  |
 
-Default node color: `#1F1F1F` with `#EDEDED` text.
+Color belongs to the shape, not to the node: every node of a shape draws the same color, so two circles always match. Until someone picks another one (see Shape Colors), a shape has its default (`SHAPE_DEFAULT_COLORS` in `types/canvas.ts`, each a palette fill, so the vivid text color of the pair is used for its label): rectangle blue, diamond orange (decision), circle green (event), pill purple (service), cylinder teal (database), hexagon pink (external). Red is not a default because it reads as an error. `#1F1F1F` with `#EDEDED` text (neutral) is `DEFAULT_NODE_COLOR`, the text-color fallback for a fill that is not in the palette.
+
+### Cursor Colors
+
+Each collaborator's cursor color is one of the 7 vivid text colors above (blue, purple, orange, red, pink, green, teal; the neutral `#EDEDED` is excluded because it would not stand out). `getCursorColor(userId)` in `lib/cursor-color.ts` hashes the user ID onto that list, so a person keeps the same color in every session. The color is attached to the Liveblocks session as `info.color` when the token is issued.
 
 ### Edge Style
 
 Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke width is thin — edges are visually secondary to nodes.
+
+Implemented as `defaultEdgeOptions` in `lib/canvas-edges.ts` (`type: "smoothstep"`, stroke `EDGE_COLOR` at 1.5px, an `ArrowClosed` end marker in `EDGE_COLOR`, `EDGE_COLOR` in `types/canvas.ts`), passed to `ReactFlow`. React Flow merges them into each edge when drawing, so a connection stores only its source, target, and handles in the room. Because the line's color is an inline style, a selected edge does not change color.
 
 ### Node Shapes
 
@@ -81,24 +87,89 @@ Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke wid
 - `cylinder` — database / storage
 - `hexagon` — external system / boundary
 
+`components/editor/canvas-shape.tsx` (`CanvasShape`) draws every shape; the canvas node and the shape drag preview both use it, so a ghost looks exactly like the node it becomes. It fills a `width` x `height` box with the fill from `data.color`, a 1px outline, and the label centered in the largest box that stays inside the outline (`LABEL_INSET`, a CSS `inset` per shape), in the palette's text color (`text-sm`, `whitespace-pre-wrap`, `wrap-anywhere`: line breaks typed into a label are kept). Two optional props serve label editing and are unused by the drag preview: `labelEditor` (shown in place of the label text, in the same box) and `onEditLabel` (called on a double-click of the label box and on a click of the empty-label placeholder; without it the placeholder is plain text, as in the drag ghost). An empty label draws the dimmed `Label` placeholder (see Node Editing).
+
+- CSS shapes: rectangle `rounded-xl`, pill `rounded-full`, circle `rounded-full` (an ellipse if the box is not square), each a bordered `div`.
+- SVG shapes: diamond, hexagon, cylinder are one `<svg>` with `viewBox` set to the node's pixel size and `preserveAspectRatio="none"`. The path comes from `getShapePaths(shape, width, height)` in `lib/canvas-shapes.ts`, computed from the node's real size and pulled in by 0.5px so the 1px stroke is not clipped. So they scale with the node and keep a 1px outline at any size and canvas zoom, like the CSS border. Hexagon: flat top and bottom, each slanted side a quarter of the width. Cylinder: top and bottom half-ellipses with `ry` = 15% of the height, plus a second outline-only path for the front lip.
+- Outline: `border-surface-border-subtle` (SVG: `stroke-surface-border-subtle`) at rest, `brand` cyan when the node is selected.
+- Size: from the node's `width` / `height` (set by the shape panel from the shape's default). React Flow reports `0` for a node that has no size and is not measured yet, so zero counts as missing and the shape's default size is used. A `data.shape` this version does not know draws as a rectangle (`isNodeShape` in `types/canvas.ts`).
+
+### Shape Panel
+
+`components/editor/shape-panel.tsx`: a floating pill-shaped toolbar at the bottom-center of the canvas (a `pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2` wrapper that also holds the color toolbar, see Shape Colors; the panel itself is `pointer-events-auto`, `rounded-full`, `bg-surface/90` + `backdrop-blur-xl`, 1px `border-surface-border-subtle`, `shadow-lg`, `role="toolbar"`). It holds six `ghost` `icon-lg` round buttons, `h-5 w-5` Lucide icons in `text-copy-muted` (hover `text-copy-primary`, `cursor-grab`): rectangle (`RectangleHorizontal`), diamond (`Diamond`), circle (`Circle`), pill (`Pill`), cylinder (`Database`), hexagon (`Hexagon`). Each is `draggable` and carries its shape name plus default size; dropping it on the canvas wrapper creates a node at the drop point (`hooks/use-shape-drop.ts`). Clicking one with a mouse instead selects it and opens its color toolbar (see Shape Colors). Keyboard (Enter / Space) and touch activation cannot drag, so they add the shape at the center of the visible canvas (the node's center on the canvas's center, whatever the pan and zoom) and open the same color toolbar; the toolbar is opened, not toggled, so the press that adds a shape never hides it (Escape or a press elsewhere closes it). Default sizes (`SHAPE_DEFAULT_SIZES` in `types/canvas.ts`): rectangle 160x80, diamond 180x120, circle 96x96, pill 160x64, cylinder 120x100, hexagon 140x100. A new node has an empty label, and draws its shape's current color (see Node Color Palette and Shape Colors).
+
+While a shape is dragged from the panel, `components/editor/shape-drag-preview.tsx` shows a ghost of it: a `CanvasShape` of that shape at its default size and its shape's current color (Shape Colors), `opacity-60`, in a `pointer-events-none fixed z-50` portal to `body` (a portal because the panel's backdrop blur and transform would otherwise offset a fixed child). Its top-left corner follows the cursor, which is where the node's top-left lands on drop, and it is scaled by the canvas zoom so it has the on-screen size the node will have. The browser's own drag image is replaced by a transparent one (`hideNativeDragImage` in `lib/canvas-drag.ts`). The ghost mounts on `dragstart` and unmounts on `dragend`, which fires after a drop and after a cancel.
+
+`components/editor/canvas-node.tsx` is the `canvasNode` renderer: it reads `data` and the size from the synced node and hands them to `CanvasShape`, and adds the resize controls and label editor (see Node Editing) and the connection handles (see below).
+
+### Node Editing
+
+Resize and label editing, both in `components/editor/canvas-node.tsx`.
+
+- Resize: a selected node shows React Flow's `NodeResizer`: four corner handles (`size-2!`, 8px squares) and a 1px line on each side, colored from `--xy-resize-background-color` (`--accent-primary`, set in the `.react-flow` rule in `globals.css`), so they match the cyan selected outline. It renders after `CanvasShape` in the DOM so it paints over the shape (the corner handles sit half inside the node; before this, the shape covered that half and a drag there moved the node). Resizing keeps the aspect ratio (`keepAspectRatio` on `NodeResizer`): the ratio the node has when the drag starts is held, so a drag only scales it, from a corner (the opposite corner stays put) or from a side line (which scales both dimensions). A circle therefore stays a circle, and a node's ratio can no longer be changed. `NODE_MIN_SIZE` (64 x 48, `types/canvas.ts`) is a floor on both sides, so a 2:1 node stops at 96 x 48; there is no maximum. The SVG paths follow the size.
+- Label placeholder: a node whose label is empty (or only whitespace) shows `Label` (`NODE_LABEL_PLACEHOLDER` in `types/canvas.ts`) in its label box, in the palette text color at 50% opacity with a text cursor, so it is visible that the node takes text. `CanvasShape` draws it, so the shape drag ghost shows it too. Clicking the placeholder opens the editor; typing replaces it, and clearing the text brings it back. The click does not interfere with dragging: a drag that starts on the placeholder moves the node (React Flow drops the click after a drag), and a click anywhere else on the node only selects it.
+- Label editing: click the placeholder of an empty node, or double-click the label box (the same centered box that holds the label, `LABEL_INSET` per shape), to edit. `components/editor/node-label-editor.tsx` (`NodeLabelEditor`) shows a textarea in that box. A textarea cannot center its text vertically, so a hidden copy of the text shares its grid cell: the copy gives the cell the text's height, the label box centers the cell, and the textarea fills it. The textarea is borderless and transparent with `text-center` and the label's inherited font, color, wrapping, and line height, so nothing shifts when editing starts or ends. While the text is empty the textarea shows the same `Label` placeholder in the same spot as the node's own placeholder, so opening the editor does not move or change anything but adding a caret. The caret starts at the end of the text. The label updates as you type; Enter adds a line break; the editor closes on blur or Escape and keeps what was typed (Escape does not revert).
+- Text interactions do not move the canvas: the textarea has `nodrag nopan nowheel` (no node drag, pan, or wheel zoom from it), React Flow ignores Backspace and Delete while a text field is focused (the node is not deleted), and a double-click on a node does not zoom the canvas (React Flow adds `nopan` to draggable nodes).
+
+### Shape Colors
+
+A shape's color is chosen in the shape panel and is shared by every node of that shape. There is no per-node color and no color picker: only the 8 predefined pairs.
+
+- Opening: clicking a shape button (a press with no drag; a drag still adds a node) selects it. The selected button gets `bg-subtle` and its icon takes the shape's current text color, `aria-pressed` is set, and `components/editor/shape-color-toolbar.tsx` (`ShapeColorToolbar`) appears directly above the panel, centered on it with an 8px gap, so it never overlaps it. Clicking the same button, another shape's button (the toolbar switches to that shape), pressing Escape, or pressing anywhere outside the panel closes it. Which shape is selected is local UI state, never synced.
+- Container: `role="toolbar"` `aria-label="<Shape> color"`, styled like the shape panel (`rounded-full`, `bg-surface/90` + `backdrop-blur-xl`, 1px `border-surface-border-subtle`, `shadow-lg`). The wrapper around the toolbar and the panel is `pointer-events-none` and each child turns it back on, so the empty space beside the narrower one does not swallow canvas clicks and drops.
+- Swatches: one `button` per pair in `NODE_COLORS`, `size-6` round, filled with the pair's fill, `color` set to the pair's text color so everything else derives from `currentColor`: a `size-2` dot in the text color at rest, the `Check` icon in its place when active. `title` / `aria-label` is the pair's name; `aria-pressed` marks the active one (the shape's current color).
+- Active: a 2px ring in the text color with a 2px gap (`ring-2 ring-current ring-offset-2 ring-offset-surface`) plus the check.
+- Hover: a tight glow from the text color, `0 0 6px 1px` at 55% (`hover:shadow-[0_0_6px_1px_color-mix(in_srgb,currentColor_55%,transparent)]`). Keyboard focus shows a `brand` outline.
+- Interaction: the toolbar is part of the shape panel, outside the React Flow canvas, so a press on it cannot drag a node or pan the canvas.
+- Effect: a pick writes that shape's fill into the room's Storage (`shapeColors`, see `architecture-context.md`), with no server call. Every node of the shape re-renders with the new fill and its paired text color, nodes dropped afterwards start with it, and the drag ghost uses it. The other shapes are untouched.
+
+### Canvas Controls
+
+`components/editor/canvas-controls.tsx` (`CanvasControls`): a floating pill-shaped bar at the bottom-left of the canvas (`absolute bottom-4 left-4 z-20`, one layer above the shape panel's `z-10` so it stays on top if a narrow canvas makes the two overlap). It is styled like the shape panel: `rounded-full`, `bg-surface/90` + `backdrop-blur-xl`, 1px `border-surface-border-subtle`, `shadow-lg`, `p-1.5`, `role="toolbar"` with `aria-label="Canvas controls"`. Three groups of round `ghost` `icon` buttons (`h-5 w-5` Lucide icons, `text-copy-muted`, hover `text-copy-primary`), separated by thin vertical dividers (`role="separator"`, `h-5 w-px bg-surface-border-subtle`):
+
+- Tool: select (`MousePointer2`) and pan (`Hand`), two toggle buttons with `aria-pressed`; the active one gets `bg-subtle text-copy-primary` (like the selected shape in the shape panel). Pan is the starting tool, so dragging empty canvas moves the view as before. The tool is UI state in `Canvas` (never synced) and is applied through `getCanvasToolProps(tool)` in `lib/canvas-tools.ts`; see Selecting below.
+- Zoom: zoom out (`ZoomOut`), fit view (`Maximize`), zoom in (`ZoomIn`). They call the React Flow instance (`useReactFlow`) with `ZOOM_ANIMATION` (`lib/canvas-zoom.ts`, a 200ms animation), so the view eases instead of jumping. React Flow's default zoom range applies (0.5 to 2), so zoom in does nothing at 2x.
+- History: undo (`Undo2`) and redo (`Redo2`). They are the Liveblocks history handlers (`useUndo` / `useRedo`) that `Canvas` passes in; each button is `disabled` when `useCanUndo` / `useCanRedo` is false, and the shadcn `Button`'s `disabled:opacity-50` dims it. The bar takes `canUndo` / `canRedo` as props instead of calling those hooks, so it needs a `ReactFlowProvider` but no room.
+
+Every button has an `aria-label` and a `title` (`Select: drag to select nodes`, `Pan: drag to move the view`, `Zoom out`, `Fit view`, `Zoom in`, `Undo`, `Redo`). The bar is outside the React Flow DOM (a sibling of `ReactFlow`, like the shape panel), so a press on it cannot drag a node or pan.
+
+Selecting (all React Flow behavior, switched by the tool; props in `lib/canvas-tools.ts`):
+
+- Select tool: dragging on empty canvas draws a selection box instead of panning, and the nodes it touches become the selection (`SelectionMode.Partial`: a node needs only to overlap the box, not sit fully inside it). The view then moves with the middle or right mouse button, or with the left button while Space is held; the wheel and the zoom controls still zoom. React Flow ignores box selection while `panOnDrag` is `true`, which is why select mode narrows it to the middle and right buttons.
+- Pan tool: dragging empty canvas moves the view; Shift + drag still draws a selection box.
+- In either tool: a click selects a node, Cmd/Ctrl + click adds or removes one, and clicking empty canvas clears the selection. Dragging any selected node, or the dashed box around a multi-selection, moves all of them together, and an edge between moved nodes follows. Backspace or Delete removes the selected nodes and the edges attached to them (React Flow's default is Backspace only; `deleteKeyCode` adds Delete), through the canvas's `onDelete`, so it syncs and undoes like any other edit. Both keys are ignored while a text field is focused, so editing a label never deletes its node. Selection itself is local: other people do not see what you have selected.
+- Each selected node keeps its own outline and resize handles while the group box is drawn around them all.
+
+Keyboard shortcuts (`hooks/use-keyboard-shortcuts.ts`, a `keydown` listener on `window` that `Canvas` mounts): `+` or `=` zoom in, `-` zoom out, Cmd/Ctrl + Z undo, Cmd/Ctrl + Shift + Z and Cmd/Ctrl + Y redo, `A` selects every node and switches to the select tool (the control bar's Select button lights up). The zoom and history keys use the same handlers and animation as the buttons. `+`, `-`, and `A` are plain keys only: with Cmd/Ctrl or Alt held they are left to the browser (Cmd/Ctrl + `+` / `-` is page zoom, Cmd/Ctrl + `A` selects the page's text), and Alt chords are never handled; Shift is allowed (`+` is Shift + `=` on many keyboards, and Shift or Caps Lock makes the key `A`). `A` changes only the nodes that are not selected yet, so pressing it again does nothing, and on an empty canvas it only switches the tool; edges are not selected, but they are deleted with their nodes. Selection is local (React Flow `select` changes, which Liveblocks keeps out of Storage and undo history). Nothing fires while the target is an `input`, a `textarea`, or editable text (`isContentEditable`), so a node's label editor keeps its own native undo, Backspace, and `-` / `=` / `A` typing. Handled keys call `preventDefault`.
+
 ### Connection Handles
 
 Small white circular handles, hidden by default, revealed on node hover. Appear at all four sides of a node.
 
+Rendered by `canvas-node.tsx`, not by `CanvasShape` (so the drag ghost has none): four React Flow `Handle`s, ids `top`, `right`, `bottom`, `left`, all `type="source"`. With `ConnectionMode.Loose` on the canvas, any handle connects to any other handle, so a node can be wired to any side of any node (the edge's arrow ends where the connection was released). 10px (`size-2.5!`, important because React Flow's stylesheet is unlayered and would otherwise win), `opacity-0` with `group-hover:opacity-100` on a `group` wrapper, so they show while the node or a handle is hovered. Fill and ring come from `--xy-handle-background-color` (`--text-primary`) and `--xy-handle-border-color` (`--bg-base`) in the `.react-flow` rule in `globals.css`. Edges attach to the outer edge of the handle, so a line starts about 5px outside the node.
+
 ### Canvas Background
 
-React Flow `<Background>` component. Canvas sits on the base background color.
+The workspace canvas uses React Flow's `<Background variant={BackgroundVariant.Dots}>` on the base background color, with a `<MiniMap>` bottom-right (React Flow's own "React Flow" attribution link is left visible). The canvas runs with `colorMode="dark"`, and a `.react-flow` rule in `globals.css` points React Flow's `--xy-*` variables at the tokens: background `--bg-base`, dots `--border-subtle`, MiniMap `--bg-surface` with a `--bg-base` 70% mask and `--border-subtle` nodes. Change canvas colors there, not with hex values. React Flow's stylesheet (`@xyflow/react/dist/style.css`) is imported in `components/editor/canvas.tsx`.
 
-Until the canvas exists, `app/editor/page.tsx` renders a `bg-grid` container: a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see). The editor home (`components/editor/editor-home.tsx`) is centered on top of it. Drop `bg-grid` when React Flow's `<Background>` takes over, so the grid isn't drawn twice.
+The editor home keeps its own grid: `app/editor/page.tsx` renders a `bg-grid` container, a 32px square grid of 1px lines (the `bg-grid` utility in `globals.css`, lines are `--text-primary` at 12% via `color-mix`, a low-saturation white; the earlier `--border-default` lines were too dark to see), with `components/editor/editor-home.tsx` centered on top of it. The workspace no longer uses `bg-grid`, so the grid is not drawn twice.
 
 ### Workspace Shell
 
 `/editor/[roomId]` renders `components/editor/workspace-shell.tsx`, full viewport (`h-dvh`):
 
-- Navbar (`EditorNavbar` with `title` and `actions`): project sidebar toggle on the left; the project name centered (`h1`, `text-sm font-medium text-copy-primary`, truncated); on the right an `outline` Share button (`Share2`, label hidden below `sm`) that opens the Share dialog, a ghost `icon` AI sidebar toggle (`Sparkles` `h-5 w-5`, `text-ai-text` while open), then the Clerk `UserButton`.
+- Navbar (`EditorNavbar` with `title` and `actions`): project sidebar toggle on the left; the project name centered (`h1`, `text-sm font-medium text-copy-primary`, truncated); on the right an `outline` Templates button (`LayoutTemplate`, label hidden below `sm`, disabled until the canvas has connected) that opens the starter templates modal (see Starter Templates), an `outline` Share button (`Share2`, label hidden below `sm`) that opens the Share dialog, a ghost `icon` AI sidebar toggle (`Sparkles` `h-5 w-5`, `text-ai-text` while open), then the Clerk `UserButton`.
 - Left: `ProjectSidebar` with the current room highlighted.
-- Center: the canvas area fills everything below the navbar. Until the canvas exists it is `components/editor/canvas-placeholder.tsx`: `bg-base` + `bg-grid` with a centered `text-sm` two-line message (`text-copy-secondary` title, `text-copy-muted` line).
+- Center: the canvas area fills everything below the navbar: `CanvasRoom` (`components/editor/canvas-room.tsx`). While the room connects it shows a centered `text-sm` two-line `Loading canvas...` message (`role="status"`, `text-copy-secondary` title, `text-copy-muted` line, on `bg-base`); on a failed connection the same layout shows `Could not connect to the canvas` (`role="alert"`). Once connected it is the React Flow canvas (see Canvas Background).
 - Right: `components/editor/ai-sidebar.tsx`, a floating panel that mirrors `ProjectSidebar` (`top-3 right-3 bottom-3`, `w-80` capped at the viewport minus gutters, `rounded-2xl`, `bg-surface/90` + `backdrop-blur-xl`, slides in from the right, no scrim). Header: `Sparkles` (`text-ai-text`) + `AI Assistant` and a close button. Body: an empty state until AI chat exists.
+
+### Starter Templates
+
+`components/editor/starter-templates-modal.tsx` (`StarterTemplatesModal`), opened from the navbar's Templates button. It is a `DialogShell` widened with its new optional `className` (`sm:max-w-3xl`): title `Starter templates`, description `Start from a ready-made diagram. Importing replaces everything on the current canvas.` (the warning is the only guard: there is no confirmation step, and the replace is one undo step for the person who imported). The body is a `ul` grid, one column and `sm:grid-cols-2`, `gap-4`, `p-1` (so a button's focus ring is not clipped), that scrolls on its own (`max-h-[min(32rem,60dvh)] overflow-y-auto`).
+
+- Card (`li`): `rounded-2xl`, 1px `border-surface-border`, `bg-elevated/60`, `p-3`, `gap-3`: the preview, the name (`h3`, `text-sm font-medium text-copy-primary`), the description (`text-xs text-copy-muted`), and a full-width `outline` `lg` `Import` button (`Import` icon, `aria-label="Import <name>"` so each button is distinct). Clicking it calls `onImport(template)` and then closes the modal.
+- Preview (`components/editor/template-preview.tsx`, `TemplatePreview`): one SVG, `viewBox` 320 x 180 (16 padding) so it scales to the card's width, in a `rounded-xl` `border-surface-border` `bg-base` frame; `aria-hidden` because the card carries the name and description. `getPreviewLayout` (`lib/canvas-preview.ts`) takes the bounds from the nodes' positions and sizes and scales and centers them to the largest fit. Edges are drawn first as straight 1px lines between node centers (`EDGE_COLOR` at 50%, no arrowheads); nodes follow with the node's shape and `data.color` as fill and a 1px `stroke-surface-border-subtle` outline: rectangle (radius scaled from the canvas's 12px), pill, and circle as `rect` / `ellipse`, diamond, hexagon, and cylinder from the same `getShapePaths` the canvas uses. No labels, no React Flow instance. It draws each node's own `data.color`, which for a template is its shape's default color, so it shows what an import gives on a canvas that has not recolored that shape.
+- Templates (`components/editor/starter-templates.ts`): Microservices, CI/CD Pipeline, Event-Driven System, each 8 to 9 nodes in a left-to-right layout using the shape meanings from Node Shapes (diamond gateway or decision, pill service, cylinder store, hexagon external system, circle start).
 
 ### Access Denied
 

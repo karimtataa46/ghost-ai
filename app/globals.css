@@ -128,6 +128,20 @@
   background-size: 32px 32px;
 }
 
+/* React Flow reads these in place of its own colors, so the canvas follows the project tokens. */
+.react-flow {
+  --xy-background-color: var(--bg-base);
+  --xy-background-pattern-color: var(--border-subtle);
+  --xy-minimap-background-color: var(--bg-surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--bg-base) 70%, transparent);
+  --xy-minimap-node-background-color: var(--border-subtle);
+  /* Connection handles: white dots with a base-colored ring, so they read on any node fill. */
+  --xy-handle-background-color: var(--text-primary);
+  --xy-handle-border-color: var(--bg-base);
+  /* Resize handles and lines on a selected node: brand cyan, like the selected outline. */
+  --xy-resize-background-color: var(--accent-primary);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

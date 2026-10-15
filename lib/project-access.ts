@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
+import { toClerkProfile } from "@/lib/clerk-profiles";
 import { prisma } from "@/lib/prisma";
 import { collaboratorEmail, projectSummarySelect } from "@/lib/projects";
 import type { WorkspaceProject } from "@/types/project";
@@ -9,6 +10,9 @@ export interface CurrentUser {
   userId: string;
   // Verified primary email, used to match collaborators. Null when it is not verified.
   email: string | null;
+  // Clerk display name and uploaded avatar (`toClerkProfile`); null when the user has none.
+  name: string | null;
+  imageUrl: string | null;
 }
 
 // Null when signed out. Cached per request so a layout and its page share one Clerk lookup.
@@ -23,7 +27,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const primaryEmail = user?.primaryEmailAddress;
   const isVerified = primaryEmail?.verification?.status === "verified";
 
-  return { userId, email: isVerified ? primaryEmail.emailAddress : null };
+  return {
+    userId,
+    email: isVerified ? primaryEmail.emailAddress : null,
+    ...(user ? toClerkProfile(user) : { name: null, imageUrl: null }),
+  };
 });
 
 // The project when the user owns it or is a collaborator on it, otherwise null.
