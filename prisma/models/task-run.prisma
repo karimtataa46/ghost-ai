@@ -1,0 +1,12 @@
+// A Trigger.dev run started for a project. Token issuance checks this row, so a run ID alone
+// never grants access.
+model TaskRun {
+  id        String   @id @default(cuid())
+  runId     String   @unique // Trigger.dev run ID; the unique key is also the index on runId
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String // Clerk user ID of the person who started the run
+  createdAt DateTime @default(now())
+
+  @@index([userId, projectId])
+}
