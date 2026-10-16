@@ -7,6 +7,7 @@ import { getLiveblocks } from "@/lib/liveblocks";
 import { prisma } from "@/lib/prisma";
 import { denyUnlessOwner, isRecordNotFound, projectSelect } from "@/lib/projects";
 import { readJsonObject } from "@/lib/request-body";
+import { deleteProjectSpecBlobs } from "@/lib/spec-storage";
 
 interface ProjectRouteContext {
   params: Promise<{ projectId: string }>;
@@ -95,6 +96,9 @@ export async function DELETE(_request: Request, { params }: ProjectRouteContext)
     if (canvasJsonPath) {
       await deleteCanvasBlob(canvasJsonPath);
     }
+
+    // The spec rows went with the project (cascade), but their files are separate blobs.
+    await deleteProjectSpecBlobs(projectId);
 
     return Response.json({ id: projectId });
   } catch (error) {

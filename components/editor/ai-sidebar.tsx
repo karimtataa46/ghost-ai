@@ -19,7 +19,8 @@ const TAB_TRIGGER_CLASS =
   "data-active:bg-ai/15 data-active:text-ai-text data-active:hover:text-ai-text dark:data-active:border-transparent dark:data-active:bg-ai/15 dark:data-active:text-ai-text dark:data-active:hover:text-ai-text";
 
 // The AI sidebar: a floating panel that mirrors `ProjectSidebar` and slides in from the right
-// over the canvas without resizing it. The parent owns whether it is open.
+// over the canvas without resizing it. The parent owns whether it is open. Must render under a
+// `RoomProvider` (the AI Architect tab reads the room's chat, presence, and AI status feed).
 export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
   return (
     <aside

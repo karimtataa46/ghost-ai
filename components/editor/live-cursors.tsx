@@ -3,6 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { shallow, useOther, useOthersConnectionIds } from "@liveblocks/react/suspense";
 import { useStore, ViewportPortal } from "@xyflow/react";
+import { Loader2 } from "lucide-react";
 
 interface LiveCursorProps {
   connectionId: number;
@@ -14,13 +15,14 @@ interface LiveCursorProps {
 // same color. Subscribes to that one connection only, so a cursor moving re-renders this
 // component and nothing else.
 function LiveCursor({ connectionId, currentUserId }: LiveCursorProps) {
-  const { id, name, color, cursor } = useOther(
+  const { id, name, color, cursor, thinking } = useOther(
     connectionId,
     (other) => ({
       id: other.id,
       name: other.info.name,
       color: other.info.color,
       cursor: other.presence.cursor,
+      thinking: other.presence.thinking,
     }),
     shallow,
   );
@@ -47,10 +49,12 @@ function LiveCursor({ connectionId, currentUserId }: LiveCursorProps) {
       </svg>
       {/* The color is vivid, so the text is the near-black page color (`--bg-base`) for contrast. */}
       <span
-        className="absolute top-4 left-3 max-w-40 truncate rounded-xl px-2 py-0.5 text-xs font-medium whitespace-nowrap text-[color:var(--bg-base)]"
+        className="absolute top-4 left-3 flex max-w-40 items-center gap-1 rounded-xl px-2 py-0.5 text-xs font-medium whitespace-nowrap text-[color:var(--bg-base)]"
         style={{ backgroundColor: color }}
       >
-        {name}
+        {/* A spinner while this participant is `thinking` (the AI, or someone it works for). */}
+        {thinking && <Loader2 aria-label="Thinking" className="size-3 shrink-0 animate-spin" />}
+        <span className="truncate">{name}</span>
       </span>
     </div>
   );

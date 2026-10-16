@@ -11,24 +11,31 @@ export class ProjectApiError extends Error {
   }
 }
 
-export async function request(url: string, init: RequestInit): Promise<unknown> {
-  let response: Response;
-
+// Fetches, mapping a network failure to `ProjectApiError` with status 0.
+export async function send(url: string, init: RequestInit): Promise<Response> {
   try {
-    response = await fetch(url, init);
+    return await fetch(url, init);
   } catch {
     throw new ProjectApiError("Could not reach the server. Check your connection and try again.", 0);
   }
+}
 
-  // Errors are `{ error }` from the routes; anything else (HTML 500, empty body) gets a generic message.
+// Errors are `{ error }` from the routes; anything else (HTML 500, empty body) gets a generic message.
+export function errorFrom(body: unknown, status: number): ProjectApiError {
+  const message =
+    typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
+      ? body.error
+      : "Something went wrong. Try again.";
+
+  return new ProjectApiError(message, status);
+}
+
+export async function request(url: string, init: RequestInit): Promise<unknown> {
+  const response = await send(url, init);
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      typeof body === "object" && body !== null && "error" in body && typeof body.error === "string"
-        ? body.error
-        : "Something went wrong. Try again.";
-    throw new ProjectApiError(message, response.status);
+    throw errorFrom(body, response.status);
   }
 
   return body;

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ClientSideSuspense,
-  LiveblocksProvider,
-  RoomProvider,
-  useErrorListener,
-} from "@liveblocks/react/suspense";
-import { LiveObject } from "@liveblocks/client";
+import { ClientSideSuspense, useErrorListener } from "@liveblocks/react/suspense";
 import { ErrorBoundary, useErrorBoundary } from "react-error-boundary";
 
 import { Canvas } from "@/components/editor/canvas";
@@ -50,49 +44,37 @@ function ConnectionErrorListener() {
   return null;
 }
 
-// Joins the project's Liveblocks room and renders the canvas inside it. Tokens come from
-// `POST /api/liveblocks-auth`, which checks that the user can open the project.
+// Renders the canvas inside the project's Liveblocks room, which `ProjectRoom` provides (mounted
+// by `WorkspaceShell`, so the AI sidebar shares the room).
 export function CanvasRoom({ roomId }: CanvasRoomProps) {
   return (
-    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-      {/* Keyed by room so moving between projects starts from a fresh canvas and boundary. */}
-      <RoomProvider
-        key={roomId}
-        id={roomId}
-        initialPresence={{ cursor: null, thinking: false }}
-        // The picked shape colors start empty. The canvas's own `flow` key is not listed: the
-        // flow hook creates it.
-        initialStorage={{ shapeColors: new LiveObject({}) }}
+    // The canvas area, positioned so the participant group can sit in its top-right corner.
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <ErrorBoundary
+        fallback={
+          <CanvasStatus
+            role="alert"
+            title="Could not connect to the canvas"
+            description="Reload the page to try again. If it keeps failing, you may no longer have access to this project."
+          />
+        }
       >
-        {/* The canvas area, positioned so the participant group can sit in its top-right corner. */}
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <ErrorBoundary
-            fallback={
-              <CanvasStatus
-                role="alert"
-                title="Could not connect to the canvas"
-                description="Reload the page to try again. If it keeps failing, you may no longer have access to this project."
-              />
-            }
-          >
-            {/* Outside the Suspense boundary: effects of a suspended subtree do not run. */}
-            <ConnectionErrorListener />
-            <ClientSideSuspense
-              fallback={
-                <CanvasStatus
-                  role="status"
-                  title="Loading canvas..."
-                  description="Connecting to your project."
-                />
-              }
-            >
-              <Canvas projectId={roomId} />
-            </ClientSideSuspense>
-          </ErrorBoundary>
-          {/* Beside the boundary, not in it, so the user menu stays while loading or after an error. */}
-          <PresenceAvatars />
-        </div>
-      </RoomProvider>
-    </LiveblocksProvider>
+        {/* Outside the Suspense boundary: effects of a suspended subtree do not run. */}
+        <ConnectionErrorListener />
+        <ClientSideSuspense
+          fallback={
+            <CanvasStatus
+              role="status"
+              title="Loading canvas..."
+              description="Connecting to your project."
+            />
+          }
+        >
+          <Canvas projectId={roomId} />
+        </ClientSideSuspense>
+      </ErrorBoundary>
+      {/* Beside the boundary, not in it, so the user menu stays while loading or after an error. */}
+      <PresenceAvatars />
+    </div>
   );
 }

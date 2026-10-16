@@ -1,0 +1,12 @@
+// Metadata for a generated spec. The Markdown itself lives in Vercel Blob at
+// `specs/{projectId}/{id}.md`; `filePath` is that blob's URL, the same split as
+// `Project.canvasJsonPath`. A project can have many specs (each generation adds one).
+model ProjectSpec {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filePath  String // Vercel Blob URL; private, so it is only ever read through the download route
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
