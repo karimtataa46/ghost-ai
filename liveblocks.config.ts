@@ -8,10 +8,11 @@ declare global {
   interface Liveblocks {
     // Each user's Presence, for useMyPresence, useOthers, etc.
     Presence: {
-      // Canvas position of the pointer, or null when it is outside the canvas.
+      // Position of the pointer in canvas (React Flow) coordinates, so it lands on the same spot
+      // whatever each person's pan and zoom, or null when it is outside the canvas.
       cursor: { x: number; y: number } | null;
       // True while the AI is working on behalf of this user.
-      isThinking: boolean;
+      thinking: boolean;
     };
 
     // The room's Storage root. The canvas itself lives under `flow`, which

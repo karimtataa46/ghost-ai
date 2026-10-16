@@ -5,6 +5,11 @@ import { LayoutTemplate, Share2, Sparkles } from "lucide-react";
 
 import { ShareDialog } from "@/components/dialogs/share-dialog";
 import { AiSidebar } from "@/components/editor/ai-sidebar";
+import { CanvasSaveButton } from "@/components/editor/canvas-save-button";
+import {
+  CanvasSaveProvider,
+  type CanvasSaveControls,
+} from "@/components/editor/canvas-save-provider";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
@@ -22,15 +27,18 @@ interface WorkspaceShellProps {
   children: ReactNode;
 }
 
-// Editor chrome for an open project: project name in the navbar, Templates, Share and AI sidebar
-// toggle actions, the project sidebar on the left and the AI sidebar on the right, both
-// floating over the canvas, and the share and starter templates dialogs. Must render under
-// `ProjectsProvider`.
+// Editor chrome for an open project: project name in the navbar, Save (with the autosave status),
+// Templates, Share and AI sidebar toggle actions, the project sidebar on the left and the AI
+// sidebar on the right, both floating over the canvas, and the share and starter templates
+// dialogs. Must render under `ProjectsProvider`.
 export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  // The mounted canvas's save state, or `null` while there is no canvas (loading, or a failed
+  // connection).
+  const [saveControls, setSaveControls] = useState<CanvasSaveControls | null>(null);
   // The mounted canvas's template importer, or `null` while there is no canvas (loading, or a
   // failed connection). The function is wrapped because `setState` would call it as an updater.
   const [importTemplate, setImportTemplate] = useState<TemplateImporter | null>(null);
@@ -47,6 +55,8 @@ export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
         title={project.name}
         actions={
           <>
+            {/* Disabled until the canvas has connected and loaded, since it owns the save state. */}
+            <CanvasSaveButton controls={saveControls} />
             {/* Disabled until the canvas has connected, since importing needs its room. */}
             <Button
               variant="outline"
@@ -81,7 +91,9 @@ export function WorkspaceShell({ project, children }: WorkspaceShellProps) {
           activeProjectId={project.id}
         />
         <main className="flex min-h-0 flex-1 flex-col">
-          <TemplateImportProvider onRegister={registerImporter}>{children}</TemplateImportProvider>
+          <CanvasSaveProvider onRegister={setSaveControls}>
+            <TemplateImportProvider onRegister={registerImporter}>{children}</TemplateImportProvider>
+          </CanvasSaveProvider>
         </main>
         <AiSidebar
           isOpen={isAiSidebarOpen}

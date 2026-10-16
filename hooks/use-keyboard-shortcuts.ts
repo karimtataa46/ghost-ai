@@ -4,13 +4,13 @@ import type { ReactFlowInstance } from "@xyflow/react";
 import { useEffect } from "react";
 
 import { ZOOM_ANIMATION } from "@/lib/canvas-zoom";
-import type { CanvasEdge, CanvasNode } from "@/types/canvas";
+import type { CanvasEdge, CanvasNode, CanvasTool } from "@/types/canvas";
 
 interface KeyboardShortcutsOptions {
   reactFlow: Pick<ReactFlowInstance<CanvasNode, CanvasEdge>, "zoomIn" | "zoomOut">;
   onUndo: () => void;
   onRedo: () => void;
-  onSelectAll: () => void;
+  onToolChange: (tool: CanvasTool) => void;
 }
 
 // A key press while typing belongs to the field, not the canvas: text inputs, textareas, and
@@ -24,13 +24,13 @@ function isEditableTarget(target: EventTarget | null) {
 // Canvas keyboard shortcuts, listened for on `window`:
 // - `+` or `=` zooms in, `-` zooms out
 // - Cmd/Ctrl + Z undoes, Cmd/Ctrl + Shift + Z and Cmd/Ctrl + Y redo
-// - `A` selects every node (and switches to the select tool, which is the caller's business)
+// - `A` switches to the select tool, `H` to the hand (pan) tool; neither touches the selection
 // Does nothing while the user is typing in an input, textarea, or editable text.
 export function useKeyboardShortcuts({
   reactFlow,
   onUndo,
   onRedo,
-  onSelectAll,
+  onToolChange,
 }: KeyboardShortcutsOptions) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -55,7 +55,7 @@ export function useKeyboardShortcuts({
 
       // Plain keys only: Cmd/Ctrl + `+` / `-` is the browser's page zoom, Cmd/Ctrl + `A` selects
       // the page's text, and Alt chords are not ours. Shift is allowed because `+` is Shift + `=`
-      // on many keyboards (and Caps Lock or Shift makes the key `A`).
+      // on many keyboards (and Caps Lock or Shift makes the key `A` or `H`).
       if (event.altKey) return;
 
       if (key === "+" || key === "=") {
@@ -66,11 +66,14 @@ export function useKeyboardShortcuts({
         reactFlow.zoomOut(ZOOM_ANIMATION);
       } else if (key === "a") {
         event.preventDefault();
-        onSelectAll();
+        onToolChange("select");
+      } else if (key === "h") {
+        event.preventDefault();
+        onToolChange("pan");
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [reactFlow, onUndo, onRedo, onSelectAll]);
+  }, [reactFlow, onUndo, onRedo, onToolChange]);
 }

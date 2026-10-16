@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
+import { ProjectStatus } from "@/app/generated/prisma/client";
 import { toClerkProfile } from "@/lib/clerk-profiles";
 import { prisma } from "@/lib/prisma";
 import { collaboratorEmail, projectSummarySelect } from "@/lib/projects";
@@ -35,7 +36,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 });
 
 // The project when the user owns it or is a collaborator on it, otherwise null.
-// A missing project and one the user cannot open look the same to the caller.
+// A missing project, one being deleted, and one the user cannot open look the same to the caller.
 export async function findAccessibleProject(
   projectId: string,
   user: CurrentUser
@@ -43,6 +44,9 @@ export async function findAccessibleProject(
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
+      // DELETE marks the project before it removes the Liveblocks room, so a token request that
+      // arrives in between cannot re-create the room.
+      status: { not: ProjectStatus.DELETING },
       OR: [{ ownerId: user.userId }, ...(user.email ? [collaboratorEmail(user.email)] : [])],
     },
     select: { ...projectSummarySelect, ownerId: true },
