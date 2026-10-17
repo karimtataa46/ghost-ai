@@ -29,9 +29,13 @@ function createPrismaClient() {
   });
 }
 
+let productionClient: PrismaClient | undefined;
+
 function getPrismaClient() {
   if (process.env.NODE_ENV === "production") {
-    return createPrismaClient();
+    productionClient ??= createPrismaClient();
+
+    return productionClient;
   }
 
   const cached = globalForPrisma.prisma;
@@ -51,4 +55,16 @@ function getPrismaClient() {
   return client;
 }
 
-export const prisma = getPrismaClient();
+// The client is created on first use, not on import, so a missing `DATABASE_URL` fails the query
+// that needs it rather than every module that imports this file. This matters for the Trigger.dev
+// deploy: it imports each task file with no environment variables to find the tasks, and
+// `generate-spec` reaches this file through `spec-storage`, so an import-time throw failed the
+// whole deploy ("There was an error importing task files").
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, property, client);
+
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

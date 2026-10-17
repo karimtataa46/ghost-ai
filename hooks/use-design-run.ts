@@ -47,7 +47,11 @@ export function useDesignRun({ roomId, onFinished, failure }: UseDesignRunOption
     failureRef.current = failure;
   });
 
+  // `id` is the key the hook keeps its `run` and `error` under. Left out, it is one key per
+  // component, so the previous run's finished state is still there when the next run starts, and
+  // the effect below would end the new run at once with the old run's outcome.
   const { run, error } = useRealtimeRun<typeof designAgentTask>(handle?.runId, {
+    id: handle?.runId,
     accessToken: handle?.publicToken,
     enabled: handle !== null,
   });
