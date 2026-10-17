@@ -9,7 +9,7 @@ import { AiChatMessage } from "@/components/editor/ai-chat-message";
 import { AiStatusIndicator } from "@/components/editor/ai-status-indicator";
 import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiChatFeedReady } from "@/hooks/use-ai-chat-feed-ready";
-import { useAiStatus } from "@/hooks/use-ai-status";
+import { useLatestAiStatus } from "@/hooks/use-ai-status";
 import { useAiThinking } from "@/hooks/use-ai-thinking";
 import { useDesignRun } from "@/hooks/use-design-run";
 
@@ -33,12 +33,12 @@ export function AiArchitectTab() {
 function AiChatPanel() {
   const { messages, sendMessage, sendAssistantMessage, isSending, error, userId } = useAiChat();
   const roomId = useRoom().id;
-  const status = useAiStatus();
+  const status = useLatestAiStatus();
   // The run you started (the input locks from the moment you send) or anyone's, read from presence.
   const designRun = useDesignRun({
     roomId,
     onFinished: (message) => void sendAssistantMessage(message),
-    failure: status?.kind === "error" && status.text ? status.text : null,
+    status,
   });
   const isGenerating = useAiThinking() || designRun.isActive;
   const [draft, setDraft] = useState("");
